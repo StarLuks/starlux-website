@@ -1,0 +1,59 @@
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import Icon from "@/components/ui/icon";
+import { rub } from "@/data/catalog";
+
+const ANGRY_MANAGER = "https://cdn.poehali.dev/projects/00ffe408-2a47-4771-a509-db88cbfc9021/files/67db80a0-55e0-47ad-8a3c-faabc7cea9aa.jpg";
+
+interface Props {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onConfirm: () => void;
+  count: number;
+  total: number;
+}
+
+const ClearOrderDialog = ({ open, onOpenChange, onConfirm, count, total }: Props) => (
+  <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialogContent className="max-w-sm overflow-hidden rounded-[28px] border-0 p-0 shadow-2xl">
+      <div className="relative">
+        <img src={ANGRY_MANAGER} alt="Недовольный менеджер по продажам" className="h-60 w-full object-cover object-top" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/10 to-transparent" />
+        <span className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full bg-destructive px-3 py-1 text-xs font-bold text-destructive-foreground shadow-lg">
+          <Icon name="TriangleAlert" size={14} /> Внимание
+        </span>
+      </div>
+      <div className="-mt-8 space-y-2 px-6 text-center">
+        <AlertDialogTitle className="font-head text-xl font-bold">Точно очистить заказ?</AlertDialogTitle>
+        <AlertDialogDescription className="text-sm text-muted-foreground">
+          Ваш менеджер уже приготовил товар. Будут удалены все позиции:{" "}
+          <b className="text-foreground">
+            {count} поз. на {rub(total)}
+          </b>
+          . Отменить это действие нельзя.
+        </AlertDialogDescription>
+      </div>
+      <div className="grid grid-cols-2 gap-3 p-6 pt-4">
+        <button
+          type="button"
+          onClick={() => onOpenChange(false)}
+          className="h-11 rounded-full bg-primary font-head text-sm font-bold text-primary-foreground shadow-md shadow-primary/25 transition hover:opacity-90"
+          autoFocus
+        >
+          Нет
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            onConfirm();
+            onOpenChange(false);
+          }}
+          className="h-11 rounded-full bg-pill font-head text-sm font-semibold text-foreground transition hover:bg-destructive hover:text-destructive-foreground"
+        >
+          Да, очистить
+        </button>
+      </div>
+    </AlertDialogContent>
+  </AlertDialog>
+);
+
+export default ClearOrderDialog;

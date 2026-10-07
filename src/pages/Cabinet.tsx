@@ -4,6 +4,7 @@ import TopNav from "@/components/layout/TopNav";
 import OrderFilters from "@/components/order/OrderFilters";
 import PriceTable from "@/components/order/PriceTable";
 import OrdersList from "@/components/order/OrdersList";
+import ClearOrderDialog from "@/components/order/ClearOrderDialog";
 import OrdersFilterBar, { EMPTY_FILTER, OrdersFilter } from "@/components/manager/OrdersFilterBar";
 import ConfirmOrderDialog from "@/components/order/ConfirmOrderDialog";
 import { boxPrice, categoriesOf, rub } from "@/data/catalog";
@@ -64,6 +65,7 @@ const Cabinet = () => {
     else localStorage.removeItem(draftKey(user.id));
   }, [qty, user, draftLoaded]);
   const [confirm, setConfirm] = useState(false);
+  const [clearOpen, setClearOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -220,7 +222,7 @@ const Cabinet = () => {
               search={search}
               onSearch={setSearch}
               onClear={() => {
-                if (picked.length && window.confirm("Очистить все выбранные количества?")) setQty({});
+                if (picked.length) setClearOpen(true);
               }}
             />
           </div>
@@ -336,6 +338,13 @@ const Cabinet = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      <ClearOrderDialog
+        open={clearOpen}
+        onOpenChange={setClearOpen}
+        onConfirm={() => setQty({})}
+        count={picked.length}
+        total={total}
+      />
       <ConfirmOrderDialog
         open={confirm}
         onOpenChange={setConfirm}
