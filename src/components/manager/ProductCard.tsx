@@ -31,6 +31,7 @@ type Form = {
   dimensions: string;
   weight: string;
   pack: string;
+  stock: string;
   prices: Record<string, string>;
 };
 
@@ -48,6 +49,7 @@ const toForm = (p: NomProduct | null, groupId?: number | null): Form => ({
   dimensions: p?.dimensions ?? "",
   weight: p ? String(p.weight) : "",
   pack: p?.pack ?? "",
+  stock: p ? String(p.stock) : "0",
   prices: Object.fromEntries(Object.entries(p?.prices ?? {}).map(([k, v]) => [k, String(v)])),
 });
 
@@ -99,6 +101,11 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
       const v = (form.prices[t.id] ?? "").trim();
       prices[t.id] = v === "" ? null : v;
     });
+    if (!/^\d+$/.test(form.stock.trim())) {
+      toast({ title: "Остаток должен быть целым числом от 0" });
+      setTab("main");
+      return null;
+    }
     const r = await api<{ id: string }>("product_save", { ...form, groupId: Number(form.groupId), prices });
     setForm((f) => ({ ...f, id: r.id }));
     return r.id;
@@ -255,9 +262,38 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
               <Field label="Масса, кг">
                 <input className={inputCls} value={form.weight} onChange={(e) => set("weight", e.target.value)} inputMode="decimal" placeholder="0" />
               </Field>
-              <Field label="Габариты" className="col-span-2">
+              <Field label="Габариты">
                 <input className={inputCls} value={form.dimensions} onChange={(e) => set("dimensions", e.target.value)} placeholder="Д × Ш × В, см" />
               </Field>
+              <Field label={`Доступный остаток, ${form.unit || "ед."}`}>
+                <div className="flex h-10 items-center overflow-hidden rounded-xl border border-border bg-pill focus-within:border-ring focus-within:bg-card focus-within:ring-4 focus-within:ring-ring/15">
+                  <button
+                    type="button"
+                    onClick={() => set("stock", String(Math.max(0, (parseInt(form.stock) || 0) - 1)))}
+                    className="grid h-full w-9 shrink-0 place-items-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    aria-label="Уменьшить"
+                  >
+                    <Icon name="Minus" size={14} />
+                  </button>
+                  <input
+                    value={form.stock}
+                    onChange={(e) => set("stock", e.target.value.replace(/[^\d]/g, ""))}
+                    inputMode="numeric"
+                    className="h-full min-w-0 flex-1 bg-transparent text-center text-sm font-medium outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => set("stock", String((parseInt(form.stock) || 0) + 1))}
+                    className="grid h-full w-9 shrink-0 place-items-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    aria-label="Увеличить"
+                  >
+                    <Icon name="Plus" size={14} />
+                  </button>
+                </div>
+              </Field>
+              <p className="col-span-2 -mt-1 text-[11px] text-muted-foreground">
+                Остаток уже учитывает заказы клиентов. После подключения 1С он будет обновляться автоматически.
+              </p>
             </div>
           )}
 
