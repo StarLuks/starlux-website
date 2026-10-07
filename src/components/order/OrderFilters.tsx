@@ -1,6 +1,6 @@
 import { Category, rub } from "@/data/catalog";
-import { cn } from "@/lib/utils";
 import Icon from "@/components/ui/icon";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Props {
   categories: Category[];
@@ -30,27 +30,32 @@ const OrderFilters = ({ categories, category, onCategory, count, total, onSubmit
 
       <div className="tile">
         <div className="tile-label">Категория.</div>
-        <div className="flex flex-wrap gap-2 px-[18px] pb-4">
-          {categories.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => onCategory(c)}
-              className={cn(
-                "pill transition-colors",
-                c === category ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-accent-foreground"
-              )}
-            >
-              {c}
-            </button>
-          ))}
+        <div className="flex flex-col gap-3 px-[18px] pb-4 sm:flex-row">
+          <Select value={category} onValueChange={onCategory}>
+            <SelectTrigger className="h-11 rounded-full border-0 bg-pill px-5 font-head font-semibold text-foreground ring-offset-0 focus:ring-2 focus:ring-ring sm:w-[240px]">
+              <span className="flex items-center gap-2">
+                <Icon name="LayoutGrid" size={16} className="text-primary" />
+                <SelectValue placeholder="Выберите категорию" />
+              </span>
+            </SelectTrigger>
+            <SelectContent className="rounded-2xl">
+              {categories.map((c) => (
+                <SelectItem key={c} value={c} className="rounded-xl py-2.5 font-head">
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {onSearch && (
-            <input
-              value={search}
-              onChange={(e) => onSearch(e.target.value)}
-              placeholder="Поиск по прайсу…"
-              className="pill min-w-[160px] flex-1 bg-background/50 outline-none placeholder:text-muted-foreground focus:bg-accent/60"
-            />
+            <div className="relative flex-1">
+              <Icon name="Search" size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={(e) => onSearch(e.target.value)}
+                placeholder="Поиск по прайсу…"
+                className="h-11 w-full rounded-full bg-pill pl-11 pr-4 text-sm outline-none ring-ring placeholder:text-muted-foreground focus:ring-2"
+              />
+            </div>
           )}
         </div>
       </div>
