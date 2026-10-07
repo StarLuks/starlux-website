@@ -10,16 +10,6 @@ import ConfirmOrderDialog from "@/components/order/ConfirmOrderDialog";
 import { boxPrice, categoriesOf, rub } from "@/data/catalog";
 import { downloadBase64 } from "@/lib/nomenclature";
 import { Order, OrderStatus, usePortal } from "@/store/portal";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import Icon from "@/components/ui/icon";
@@ -321,22 +311,21 @@ const Cabinet = () => {
         </>
       )}
 
-      <AlertDialog open={!!cancelling} onOpenChange={(v) => !v && setCancelling(null)}>
-        <AlertDialogContent className="rounded-[24px]">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="font-head">Отменить заказ {cancelling?.number}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Заказ на сумму {cancelling ? rub(cancelling.total) : ""} будет отменён, а товар вернётся на склад. Это действие нельзя отменить.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full">Не отменять</AlertDialogCancel>
-            <AlertDialogAction onClick={cancelOrder} className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Да, отменить
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ClearOrderDialog
+        open={!!cancelling}
+        onOpenChange={(v) => !v && setCancelling(null)}
+        onConfirm={cancelOrder}
+        title={`Отменить заказ ${cancelling?.number ?? ""}?`}
+        text={
+          <>
+            Менеджер уже взял заказ в работу. Заказ на сумму{" "}
+            <b className="text-foreground">{cancelling ? rub(cancelling.total) : ""}</b> будет отменён, а товар вернётся на склад.
+            Отменить это действие нельзя.
+          </>
+        }
+        noLabel="Не отменять"
+        yesLabel="Да, отменить"
+      />
 
       <ClearOrderDialog
         open={clearOpen}

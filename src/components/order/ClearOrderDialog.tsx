@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import Icon from "@/components/ui/icon";
 import { rub } from "@/data/catalog";
@@ -8,11 +9,25 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onConfirm: () => void;
-  count: number;
-  total: number;
+  count?: number;
+  total?: number;
+  title?: string;
+  text?: ReactNode;
+  yesLabel?: string;
+  noLabel?: string;
 }
 
-const ClearOrderDialog = ({ open, onOpenChange, onConfirm, count, total }: Props) => (
+const ClearOrderDialog = ({
+  open,
+  onOpenChange,
+  onConfirm,
+  count = 0,
+  total = 0,
+  title = "Точно очистить заказ?",
+  text,
+  yesLabel = "Да, очистить",
+  noLabel = "Нет",
+}: Props) => (
   <AlertDialog open={open} onOpenChange={onOpenChange}>
     <AlertDialogContent className="max-h-[92vh] w-[calc(100%-2rem)] max-w-sm gap-0 overflow-y-auto rounded-[28px] border-0 p-0 shadow-2xl">
       <div className="relative">
@@ -23,13 +38,17 @@ const ClearOrderDialog = ({ open, onOpenChange, onConfirm, count, total }: Props
         </span>
       </div>
       <div className="space-y-2 px-6 pt-3 text-center">
-        <AlertDialogTitle className="font-head text-xl font-bold leading-tight">Точно очистить заказ?</AlertDialogTitle>
+        <AlertDialogTitle className="font-head text-xl font-bold leading-tight">{title}</AlertDialogTitle>
         <AlertDialogDescription className="text-sm leading-relaxed text-muted-foreground">
-          Ваш менеджер уже приготовил товар. Будут удалены все позиции:{" "}
-          <b className="text-foreground">
-            {count} поз. на {rub(total)}
-          </b>
-          . Отменить это действие нельзя.
+          {text ?? (
+            <>
+              Ваш менеджер уже приготовил товар. Будут удалены все позиции:{" "}
+              <b className="text-foreground">
+                {count} поз. на {rub(total)}
+              </b>
+              . Отменить это действие нельзя.
+            </>
+          )}
         </AlertDialogDescription>
       </div>
       <div className="grid grid-cols-2 gap-3 p-6 pt-4">
@@ -39,7 +58,7 @@ const ClearOrderDialog = ({ open, onOpenChange, onConfirm, count, total }: Props
           className="h-11 rounded-full bg-primary font-head text-sm font-bold text-primary-foreground shadow-md shadow-primary/25 transition hover:opacity-90"
           autoFocus
         >
-          Нет
+          {noLabel}
         </button>
         <button
           type="button"
@@ -49,7 +68,7 @@ const ClearOrderDialog = ({ open, onOpenChange, onConfirm, count, total }: Props
           }}
           className="h-11 rounded-full bg-pill font-head text-sm font-semibold text-foreground transition hover:bg-destructive hover:text-destructive-foreground"
         >
-          Да, очистить
+          {yesLabel}
         </button>
       </div>
     </AlertDialogContent>
