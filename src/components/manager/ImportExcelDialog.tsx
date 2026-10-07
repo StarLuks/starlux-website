@@ -120,7 +120,7 @@ const ImportExcelDialog = ({ open, onOpenChange, onImported }: Props) => {
         if (!v) reset();
       }}
     >
-      <DialogContent className="max-h-[94vh] max-w-lg gap-3 overflow-y-auto rounded-[24px] p-5">
+      <DialogContent className="max-h-[94vh] max-w-[42rem] gap-3 overflow-y-auto overflow-x-hidden rounded-[24px] p-5">
         <DialogHeader>
           <DialogTitle className="font-head">Загрузка номенклатуры из Excel</DialogTitle>
           <DialogDescription className="text-xs">
@@ -230,7 +230,7 @@ const ImportExcelDialog = ({ open, onOpenChange, onImported }: Props) => {
               </ul>
             )}
 
-            <div className="max-h-[22vh] overflow-y-auto rounded-xl bg-card">
+            <div className="max-h-[22vh] overflow-y-auto overflow-x-hidden rounded-xl bg-card">
               {preview.preview
                 .filter((p) => view === "all" || p.action === view)
                 .map((p) => (
