@@ -318,6 +318,12 @@ def handler(event: dict, context) -> dict:
         if action == 'catalog':
             return resp(200, {'products': products(cur, client_price_type(cur, user)), 'lastSync': last_sync(cur)})
 
+        if action == 'price_list':
+            from pricelist import build_price_list
+            stamp = datetime.now().strftime('%d.%m.%Y')
+            return resp(200, {'file': build_price_list(cur, client_price_type(cur, user), user.get('company')),
+                              'name': f'Прайс_СтарЛюкс_{stamp}.xlsx'})
+
         if action == 'my_addresses':
             q(cur, "SELECT id, name FROM {S}.delivery_addresses WHERE client_id = %s AND active ORDER BY name", (user['id'],))
             return resp(200, {'addresses': cur.fetchall()})

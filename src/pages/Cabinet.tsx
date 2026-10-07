@@ -5,7 +5,8 @@ import OrderFilters from "@/components/order/OrderFilters";
 import PriceTable from "@/components/order/PriceTable";
 import OrdersList from "@/components/order/OrdersList";
 import ConfirmOrderDialog from "@/components/order/ConfirmOrderDialog";
-import { boxPrice, categoriesOf, downloadPriceList, rub } from "@/data/catalog";
+import { boxPrice, categoriesOf, rub } from "@/data/catalog";
+import { downloadBase64 } from "@/lib/nomenclature";
 import { Order, OrderStatus, usePortal } from "@/store/portal";
 import {
   AlertDialog,
@@ -40,6 +41,20 @@ const Cabinet = () => {
   const [cancelling, setCancelling] = useState<Order | null>(null);
 
   const activeCat = category || categories[0] || "";
+
+  const [priceBusy, setPriceBusy] = useState(false);
+  const downloadPrice = async () => {
+    if (priceBusy) return;
+    setPriceBusy(true);
+    try {
+      const d = await api<{ file: string; name: string }>("price_list");
+      downloadBase64(d.file, d.name, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    } catch (e) {
+      toast({ title: "Не удалось скачать прайс", description: (e as Error).message });
+    } finally {
+      setPriceBusy(false);
+    }
+  };
 
   const loadOrders = useCallback(() => {
     api<{ orders: Order[] }>("orders")
@@ -114,7 +129,7 @@ const Cabinet = () => {
         items={[
           { label: "Новый заказ", active: tab === "catalog", onClick: () => setTab("catalog") },
           { label: `Мои заказы · ${orders.length}`, active: tab === "orders", onClick: () => setTab("orders") },
-          { label: "Прайс ↓", onClick: () => downloadPriceList(products) },
+          { label: priceBusy ? "Формирую прайс…" : "Прайс ↓", onClick: downloadPrice },
         ]}
         right={
           <>
