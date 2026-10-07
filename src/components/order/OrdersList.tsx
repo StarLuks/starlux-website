@@ -59,6 +59,21 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
             </button>
             {isOpen && (
               <div className="animate-fade-in border-t border-border bg-background/30 px-4 py-4 md:px-[22px]">
+                {(o.address || o.priceTypeName) && (
+                  <div className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[0.8em]">
+                    {o.priceTypeName && (
+                      <span className="flex items-center gap-1.5">
+                        <Icon name="BadgePercent" size={14} className="text-primary" />
+                        <span className="text-muted-foreground">Тип цен:</span> <b className="font-medium">{o.priceTypeName}</b>
+                      </span>
+                    )}
+                    {o.address && (
+                      <span className="flex items-center gap-1.5">
+                        <Icon name="MapPin" size={14} className="text-primary" /> {o.address}
+                      </span>
+                    )}
+                  </div>
+                )}
                 {detailed ? (
                   <div className="overflow-x-auto rounded-2xl border border-border bg-card">
                     <table className="w-full min-w-[860px] text-[0.8em]">
@@ -138,21 +153,6 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                     );
                   })}
                 </div>
-                )}
-                {(o.address || o.priceTypeName) && (
-                  <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[0.8em]">
-                    {o.priceTypeName && (
-                      <span className="flex items-center gap-1.5">
-                        <Icon name="BadgePercent" size={14} className="text-primary" />
-                        <span className="text-muted-foreground">Тип цен:</span> <b className="font-medium">{o.priceTypeName}</b>
-                      </span>
-                    )}
-                    {o.address && (
-                      <span className="flex items-center gap-1.5">
-                        <Icon name="MapPin" size={14} className="text-primary" /> {o.address}
-                      </span>
-                    )}
-                  </div>
                 )}
                 {o.comment && <p className="mt-3 text-[0.8em] text-muted-foreground">Комментарий: {o.comment}</p>}
                 {actions && <div className="mt-4 flex flex-wrap gap-2">{actions(o)}</div>}
