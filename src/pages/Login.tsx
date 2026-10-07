@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
-import { usePortal } from "@/store/portal";
+import { isStaff, usePortal } from "@/store/portal";
 
 const Login = () => {
   const { login } = usePortal();
@@ -9,24 +9,24 @@ const Login = () => {
   const [form, setForm] = useState({ login: "", password: "" });
   const [error, setError] = useState("");
   const [show, setShow] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.login.trim() || !form.password) {
       setError("Введите логин и пароль");
       return;
     }
-    const res = login(form.login, form.password);
-    if (!res.ok) {
-      setError(res.error);
-      return;
-    }
-    navigate(res.role === "manager" ? "/manager" : "/cabinet");
-  };
-
-  const fill = (l: string) => {
-    setForm({ login: l, password: "1234" });
+    setLoading(true);
     setError("");
+    try {
+      const u = await login(form.login, form.password);
+      navigate(isStaff(u) ? "/manager" : "/cabinet");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -92,17 +92,10 @@ const Login = () => {
 
           {error && <p className="animate-fade-in rounded-[10px] bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
 
-          <button type="submit" className="rounded-full bg-ocean px-5 py-3 font-head text-ocean-foreground transition-opacity hover:opacity-90">
-            Войти →
+          <button type="submit" disabled={loading} className="disabled:opacity-60 rounded-full bg-ocean px-5 py-3 font-head text-ocean-foreground transition-opacity hover:opacity-90">
+            {loading ? "Входим…" : "Войти →"}
           </button>
 
-          <div className="rounded-[10px] bg-background/60 p-4 text-[0.75em] text-muted-foreground">
-            Демо-доступ (пароль 1234):
-            <div className="mt-2 flex flex-wrap gap-2">
-              <button type="button" onClick={() => fill("client")} className="pill bg-card hover:bg-accent">Клиент · client</button>
-              <button type="button" onClick={() => fill("manager")} className="pill bg-card hover:bg-accent">Менеджер · manager</button>
-            </div>
-          </div>
         </form>
       </div>
     </main>

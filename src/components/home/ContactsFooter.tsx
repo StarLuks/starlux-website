@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import Icon from "@/components/ui/icon";
-import { downloadPriceList } from "@/data/catalog";
 
 const ContactsFooter = () => {
   return (
@@ -36,14 +35,13 @@ const ContactsFooter = () => {
 
         <div className="tile flex flex-col justify-between p-6">
           <span className="text-[0.75em] text-muted-foreground">Прайс-лист.</span>
-          <button
-            type="button"
-            onClick={downloadPriceList}
+          <Link
+            to="/login"
             className="mt-6 flex items-center justify-between rounded-full bg-pill px-5 py-3 text-sm transition-colors hover:bg-accent"
           >
             Скачать актуальный прайс <Icon name="Download" size={16} />
-          </button>
-          <span className="mt-4 text-[0.75em] text-muted-foreground">Цены и остатки синхронизированы с 1С</span>
+          </Link>
+          <span className="mt-4 text-[0.75em] text-muted-foreground">Доступен клиентам после входа в кабинет</span>
         </div>
       </div>
 

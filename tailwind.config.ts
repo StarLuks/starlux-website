@@ -80,6 +80,7 @@ export default {
 				sm: 'calc(var(--radius) - 4px)'
 			},
 			keyframes: {
+				'hero-zoom': { from: { transform: 'scale(1.12)' }, to: { transform: 'scale(1)' } },
 				'accordion-down': {
 					from: {
 						height: '0'
@@ -115,7 +116,8 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fade-in 0.4s ease-out both',
 				'scale-in': 'scale-in 0.2s ease-out',
-				'bump': 'bump 0.3s ease-out'
+				'bump': 'bump 0.3s ease-out',
+				'hero-zoom': 'hero-zoom 18s ease-out forwards'
 			}
 		}
 	},

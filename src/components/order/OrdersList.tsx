@@ -1,6 +1,6 @@
 import { Fragment, ReactNode, useState } from "react";
 import { Order } from "@/store/portal";
-import { PRODUCTS, rub } from "@/data/catalog";
+import { rub } from "@/data/catalog";
 import StatusBadge from "./StatusBadge";
 import Icon from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,7 @@ export const fmtDate = (iso: string) =>
   new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
 const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Заказов пока нет" }: Props) => {
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState<number | null>(null);
   const cols = showClient
     ? "md:grid-cols-[110px_150px_1.6fr_110px_1fr_150px_32px]"
     : "md:grid-cols-[110px_160px_110px_1fr_150px_32px]";
@@ -47,7 +47,7 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                 isOpen && "bg-background/30"
               )}
             >
-              <span className="font-head font-medium">{o.id}</span>
+              <span className="font-head font-medium">{o.number}</span>
               <span className="text-muted-foreground max-md:text-right">{fmtDate(o.date)}</span>
               {showClient && <span className="col-span-2 truncate font-head md:col-span-1">{showClient(o)}</span>}
               <span className="text-muted-foreground">{o.items.length} поз.</span>
@@ -59,10 +59,9 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
               <div className="animate-fade-in border-t border-border bg-background/30 px-4 py-4 md:px-[22px]">
                 <div className="space-y-1.5 text-[0.8em]">
                   {o.items.map((it) => {
-                    const p = PRODUCTS.find((x) => x.id === it.productId);
                     return (
                       <div key={it.productId} className="grid grid-cols-[1fr_auto_auto] gap-4">
-                        <span className="font-head">{p?.name ?? it.productId}</span>
+                        <span className="font-head">{it.name}</span>
                         <span className="text-muted-foreground">{it.qty} кор.</span>
                         <span className="w-28 text-right">{rub(it.sum)}</span>
                       </div>

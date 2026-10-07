@@ -1,0 +1,5 @@
+{"tests": [
+ {"name": "Каталог без входа", "method": "GET", "path": "/?action=catalog", "expectedStatus": 401},
+ {"name": "Без входа", "method": "GET", "path": "/?action=orders", "expectedStatus": 401},
+ {"name": "Неверный пароль", "method": "POST", "path": "/?action=login", "body": {"login": "client", "password": "bad"}, "expectedStatus": 401}
+]}

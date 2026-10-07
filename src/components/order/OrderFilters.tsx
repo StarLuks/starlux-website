@@ -1,7 +1,8 @@
-import { CATEGORIES, Category, rub } from "@/data/catalog";
+import { Category, rub } from "@/data/catalog";
 import { cn } from "@/lib/utils";
 
 interface Props {
+  categories: Category[];
   category: Category;
   onCategory: (c: Category) => void;
   count: number;
@@ -12,7 +13,7 @@ interface Props {
   onSearch?: (s: string) => void;
 }
 
-const OrderFilters = ({ category, onCategory, count, total, onSubmit, submitLabel = "Отправить в 1С →", search, onSearch }: Props) => {
+const OrderFilters = ({ categories, category, onCategory, count, total, onSubmit, submitLabel = "Отправить в 1С →", search, onSearch }: Props) => {
   return (
     <section className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-[1.2fr_2fr_1fr]">
       <h1 className="font-head text-[34px] font-light leading-[1.1] tracking-[-0.02em] md:text-[46px]">
@@ -24,7 +25,7 @@ const OrderFilters = ({ category, onCategory, count, total, onSubmit, submitLabe
       <div className="tile">
         <div className="tile-label">Категория.</div>
         <div className="flex flex-wrap gap-2 px-[18px] pb-4">
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <button
               key={c}
               type="button"

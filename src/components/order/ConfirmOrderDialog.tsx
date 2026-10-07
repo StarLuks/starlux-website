@@ -1,18 +1,20 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { PRODUCTS, boxPrice, rub } from "@/data/catalog";
+import { Product, boxPrice, rub } from "@/data/catalog";
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   qty: Record<string, number>;
+  products: Product[];
+  sending?: boolean;
   onConfirm: (comment: string) => void;
   onRemove: (id: string) => void;
 }
 
-const ConfirmOrderDialog = ({ open, onOpenChange, qty, onConfirm, onRemove }: Props) => {
+const ConfirmOrderDialog = ({ open, onOpenChange, qty, products, sending, onConfirm, onRemove }: Props) => {
   const [comment, setComment] = useState("");
-  const items = PRODUCTS.filter((p) => (qty[p.id] ?? 0) > 0);
+  const items = products.filter((p) => (qty[p.id] ?? 0) > 0);
   const total = items.reduce((s, p) => s + boxPrice(p) * qty[p.id], 0);
 
   return (
@@ -47,14 +49,14 @@ const ConfirmOrderDialog = ({ open, onOpenChange, qty, onConfirm, onRemove }: Pr
           </div>
           <button
             type="button"
-            disabled={items.length === 0}
+            disabled={items.length === 0 || sending}
             onClick={() => {
               onConfirm(comment.trim());
               setComment("");
             }}
             className="rounded-full bg-ocean px-6 py-3 font-head text-ocean-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
           >
-            Отправить в 1С →
+            {sending ? "Отправляем…" : "Отправить заказ →"}
           </button>
         </div>
       </DialogContent>

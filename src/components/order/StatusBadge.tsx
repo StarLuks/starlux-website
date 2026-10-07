@@ -7,6 +7,7 @@ const styles: Record<OrderStatus, string> = {
   "Собирается": "bg-foreground text-card",
   "Отгружен": "bg-pill text-foreground",
   "Доставлен": "bg-success/15 text-success",
+  "Отменён": "bg-destructive/10 text-destructive",
 };
 
 const StatusBadge = ({ status }: { status: OrderStatus }) => (

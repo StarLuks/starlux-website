@@ -1,37 +1,44 @@
 import { FormEvent, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { usePortal } from "@/store/portal";
+import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  onCreated: () => void;
 }
 
 const empty = { company: "", inn: "", contact: "", phone: "", login: "", password: "" };
 
 const genPass = () => Math.random().toString(36).slice(2, 10);
 
-const NewClientDialog = ({ open, onOpenChange }: Props) => {
-  const { addClient, clients } = usePortal();
+const NewClientDialog = ({ open, onOpenChange, onCreated }: Props) => {
+  const [saving, setSaving] = useState(false);
   const [f, setF] = useState(empty);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     const er: Record<string, string> = {};
     if (!f.company.trim()) er.company = "Укажите название";
     if (!/^\d{10}$|^\d{12}$/.test(f.inn)) er.inn = "ИНН — 10 или 12 цифр";
     if (!f.login.trim()) er.login = "Укажите логин";
-    else if (clients.some((c) => c.login.toLowerCase() === f.login.trim().toLowerCase()) || f.login.trim().toLowerCase() === "manager")
-      er.login = "Такой логин уже занят";
     if (f.password.length < 4) er.password = "Минимум 4 символа";
     setErrors(er);
     if (Object.keys(er).length) return;
-    const c = addClient({ ...f, login: f.login.trim() });
-    toast({ title: "Клиент создан", description: `${c.company}: логин ${c.login}, пароль ${c.password}` });
-    setF(empty);
-    onOpenChange(false);
+    setSaving(true);
+    try {
+      await api("create_client", { ...f, login: f.login.trim() });
+      toast({ title: "Клиент создан", description: `${f.company}: логин ${f.login.trim()}, пароль ${f.password}` });
+      setF(empty);
+      onOpenChange(false);
+      onCreated();
+    } catch (err) {
+      setErrors({ login: (err as Error).message });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const field = (key: keyof typeof empty, label: string, placeholder = "") => (
@@ -52,7 +59,7 @@ const NewClientDialog = ({ open, onOpenChange }: Props) => {
       <DialogContent className="max-w-lg rounded-[10px] border-0 bg-card font-mono">
         <DialogHeader>
           <DialogTitle className="font-head text-2xl font-light">Новый клиент</DialogTitle>
-          <DialogDescription>Учётная запись также будет выгружена в 1С.</DialogDescription>
+          <DialogDescription>Клиент сможет войти по этому логину и паролю.</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">{field("company", "Организация", "ООО «Ромашка»")}</div>
@@ -66,7 +73,7 @@ const NewClientDialog = ({ open, onOpenChange }: Props) => {
               Сгенерировать
             </button>
           </div>
-          <button type="submit" className="rounded-full bg-ocean px-5 py-3 font-head text-ocean-foreground transition-opacity hover:opacity-90 sm:col-span-2">
+          <button type="submit" disabled={saving} className="disabled:opacity-60 rounded-full bg-ocean px-5 py-3 font-head text-ocean-foreground transition-opacity hover:opacity-90 sm:col-span-2">
             Создать клиента
           </button>
         </form>
