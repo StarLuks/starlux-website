@@ -245,7 +245,7 @@ def handle(cur, action, body):
         return 200, {'file': _template(cur), 'name': 'Шаблон_номенклатуры.xlsx'}
 
     if action == 'import_excel':
-        return _import_excel(cur, body.get('file') or '')
+        return _import_excel(cur, body.get('file') or '', bool(body.get('dryRun')))
 
     return None
 
@@ -291,7 +291,7 @@ UPD_TYPES = {**{c: 'text' for c in UPD_COLS}, 'pack_kg': 'numeric', 'stock': 'in
              'group_id': 'integer'}
 
 
-def _import_excel(cur, file_b64):
+def _import_excel(cur, file_b64, dry=False):
     from openpyxl import load_workbook
     if ',' in file_b64[:100]:
         file_b64 = file_b64.split(',', 1)[1]
@@ -323,10 +323,15 @@ def _import_excel(cur, file_b64):
 
     _q(cur, "SELECT id, lower(name) AS name FROM {S}.price_types")
     ptypes = {r['name']: r['id'] for r in cur.fetchall()}
-    price_cols = {}
+    price_cols, unknown_prices = {}, []
     for i, h in enumerate(head):
-        if h.startswith('цена:') and h[5:].strip() in ptypes:
-            price_cols[i] = ptypes[h[5:].strip()]
+        if h.startswith('цена:'):
+            if h[5:].strip() in ptypes:
+                price_cols[i] = ptypes[h[5:].strip()]
+            else:
+                unknown_prices.append(str(rows[0][i]).strip())
+    known_cols = [str(rows[0][i]).strip() for i in idx.values() if i is not None]
+    known_cols += [str(rows[0][i]).strip() for i in price_cols]
 
     _q(cur, "SELECT id, name, code_1c FROM {S}.product_groups")
     groups = cur.fetchall()
@@ -341,7 +346,7 @@ def _import_excel(cur, file_b64):
     existing = {p['id'] for p in prods}
 
     new_rows, upd_rows, price_map = {}, {}, {}
-    errors = []
+    errors, new_groups, preview = [], [], []
     for n, r in enumerate(rows[1:], start=2):
         def v(k):
             i = idx[k]
@@ -362,10 +367,14 @@ def _import_excel(cur, file_b64):
         gid = (by_gcode.get(gcode) if gcode else None) or (by_gname.get(gname.lower()) if gname else None)
         if not gid and (gname or gcode):
             title = gname or f"Группа {gcode}"
-            _q(cur, "INSERT INTO {S}.product_groups (name, code_1c, sort) VALUES (%s, %s, "
-                    "(SELECT COALESCE(MAX(sort), 0) + 1 FROM {S}.product_groups)) RETURNING id",
-               (title, gcode or ''))
-            gid = cur.fetchone()['id']
+            new_groups.append(title)
+            if dry:
+                gid = -len(new_groups)
+            else:
+                _q(cur, "INSERT INTO {S}.product_groups (name, code_1c, sort) VALUES (%s, %s, "
+                        "(SELECT COALESCE(MAX(sort), 0) + 1 FROM {S}.product_groups)) RETURNING id",
+                   (title, gcode or ''))
+                gid = cur.fetchone()['id']
             gname_by_id[gid] = title
             if gcode:
                 by_gcode[gcode] = gid
@@ -393,6 +402,9 @@ def _import_excel(cur, file_b64):
         if not pid:
             pid = 'n' + secrets.token_hex(5)
         target = upd_rows if pid in existing else new_rows
+        if len(preview) < 300:
+            preview.append({'row': n, 'name': name, 'group': rec['category'] or '', 'code1c': code or '',
+                            'action': 'update' if pid in existing else 'create'})
         prev = target.get(pid)
         target[pid] = {**prev, **{k: x for k, x in rec.items() if x is not None}} if prev else rec
         if code:
@@ -408,6 +420,14 @@ def _import_excel(cur, file_b64):
                     errors.append(f"Строка {n} ({name}): некорректная цена «{r[i]}»")
                 else:
                     price_map[(pid, tid)] = round(val, 2)
+
+    if dry:
+        return 200, {'ok': True, 'dryRun': True, 'created': len(new_rows), 'updated': len(upd_rows),
+                     'errors': errors[:100], 'newGroups': new_groups, 'prices': len(price_map),
+                     'priceTypes': [str(rows[0][i]).strip()[5:].strip() for i in price_cols],
+                     'unknownPrices': unknown_prices,
+                     'ignoredCols': [str(h).strip() for h in rows[0] if h and str(h).strip() not in known_cols and str(h).strip() not in unknown_prices][:20],
+                     'preview': preview, 'total': len(rows) - 1}
 
     from psycopg2.extras import execute_values
     schema = os.environ.get('MAIN_DB_SCHEMA', 't_p16770056_starlux_website')

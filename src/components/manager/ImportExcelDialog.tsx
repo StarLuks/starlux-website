@@ -13,6 +13,15 @@ interface Props {
 }
 
 type Result = { created: number; updated: number; errors: string[] };
+type Preview = Result & {
+  total: number;
+  prices: number;
+  newGroups: string[];
+  priceTypes: string[];
+  unknownPrices: string[];
+  ignoredCols: string[];
+  preview: { row: number; name: string; group: string; code1c: string; action: "create" | "update" }[];
+};
 
 const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
@@ -21,11 +30,14 @@ const ImportExcelDialog = ({ open, onOpenChange, onImported }: Props) => {
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  const [preview, setPreview] = useState<Preview | null>(null);
+  const [view, setView] = useState<"all" | "create" | "update">("all");
   const ref = useRef<HTMLInputElement>(null);
 
   const reset = () => {
     setFile(null);
     setResult(null);
+    setPreview(null);
   };
 
   const template = async () => {
@@ -44,7 +56,23 @@ const ImportExcelDialog = ({ open, onOpenChange, onImported }: Props) => {
       return;
     }
     setResult(null);
+    setPreview(null);
     setFile(f);
+    check(f);
+  };
+
+  const check = async (f: File) => {
+    setBusy(true);
+    try {
+      const p = await api<Preview>("import_excel", { file: await fileToBase64(f), dryRun: true });
+      setPreview(p);
+      setView("all");
+    } catch (e) {
+      toast({ title: "Не удалось проверить файл", description: (e as Error).message });
+      setFile(null);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const run = async () => {
@@ -53,6 +81,7 @@ const ImportExcelDialog = ({ open, onOpenChange, onImported }: Props) => {
     try {
       const r = await api<Result>("import_excel", { file: await fileToBase64(file) });
       setResult(r);
+      setPreview(null);
       onImported();
       toast({ title: "Загрузка завершена", description: `Создано: ${r.created}, обновлено: ${r.updated}` });
     } catch (e) {
@@ -70,7 +99,7 @@ const ImportExcelDialog = ({ open, onOpenChange, onImported }: Props) => {
         if (!v) reset();
       }}
     >
-      <DialogContent className="max-w-lg rounded-[24px]">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto rounded-[24px]">
         <DialogHeader>
           <DialogTitle className="font-head">Загрузка номенклатуры из Excel</DialogTitle>
           <DialogDescription>
@@ -116,6 +145,82 @@ const ImportExcelDialog = ({ open, onOpenChange, onImported }: Props) => {
           <input ref={ref} type="file" accept=".xlsx" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
         </div>
 
+        {preview && !result && (
+          <div className="space-y-3 rounded-2xl bg-pill p-4 text-sm">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {[
+                { k: "create", l: "Новых", v: preview.created, c: "text-emerald-600" },
+                { k: "update", l: "Обновится", v: preview.updated, c: "text-primary" },
+                { k: "err", l: "Ошибок", v: preview.errors.length, c: preview.errors.length ? "text-destructive" : "text-muted-foreground" },
+              ].map((x) => (
+                <button
+                  key={x.k}
+                  type="button"
+                  disabled={x.k === "err"}
+                  onClick={() => setView(view === x.k ? "all" : (x.k as "create" | "update"))}
+                  className={cn("rounded-xl bg-card px-2 py-2 transition", view === x.k && "ring-2 ring-ring")}
+                >
+                  <b className={cn("block font-head text-xl", x.c)}>{x.v}</b>
+                  <span className="text-xs text-muted-foreground">{x.l}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <p>
+                Строк в файле: <b className="text-foreground">{preview.total}</b> · цен к записи: <b className="text-foreground">{preview.prices}</b>
+                {preview.priceTypes.length > 0 && <> ({preview.priceTypes.join(", ")})</>}
+              </p>
+              {preview.newGroups.length > 0 && (
+                <p className="flex items-start gap-1.5">
+                  <Icon name="FolderPlus" size={14} className="mt-px shrink-0 text-primary" />
+                  Будут созданы группы: <b className="text-foreground">{preview.newGroups.join(", ")}</b>
+                </p>
+              )}
+              {preview.unknownPrices.length > 0 && (
+                <p className="flex items-start gap-1.5 text-amber-700">
+                  <Icon name="TriangleAlert" size={14} className="mt-px shrink-0" />
+                  Не загрузятся — нет такого типа цен: {preview.unknownPrices.join(", ")}. Создайте его в «Типах цен» и проверьте файл снова.
+                </p>
+              )}
+              {preview.ignoredCols.length > 0 && (
+                <p className="flex items-start gap-1.5">
+                  <Icon name="EyeOff" size={14} className="mt-px shrink-0" />
+                  Колонки пропущены: {preview.ignoredCols.join(", ")}
+                </p>
+              )}
+            </div>
+
+            {preview.errors.length > 0 && (
+              <ul className="max-h-28 space-y-1 overflow-y-auto rounded-xl bg-destructive/5 p-2 text-xs text-destructive">
+                {preview.errors.map((e) => (
+                  <li key={e}>• {e}</li>
+                ))}
+              </ul>
+            )}
+
+            <div className="max-h-48 overflow-y-auto rounded-xl bg-card">
+              {preview.preview
+                .filter((p) => view === "all" || p.action === view)
+                .map((p) => (
+                  <div key={p.row} className="flex items-center gap-2 border-b border-border px-3 py-1.5 text-xs last:border-0">
+                    <span className="w-7 shrink-0 text-muted-foreground">{p.row}</span>
+                    <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                    <span className="hidden max-w-[110px] truncate text-muted-foreground sm:block">{p.group}</span>
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                        p.action === "create" ? "bg-emerald-500/15 text-emerald-700" : "bg-primary/15 text-primary"
+                      )}
+                    >
+                      {p.action === "create" ? "новый" : "обновить"}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
         {result && (
           <div className="space-y-2 rounded-2xl bg-pill p-4 text-sm">
             <div className="flex gap-4">
@@ -144,11 +249,19 @@ const ImportExcelDialog = ({ open, onOpenChange, onImported }: Props) => {
         <button
           type="button"
           onClick={run}
-          disabled={!file || busy}
+          disabled={!file || busy || !preview || preview.created + preview.updated === 0}
           className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-primary font-head font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
         >
           {busy ? <Icon name="Loader2" size={18} className="animate-spin" /> : <Icon name="Upload" size={18} />}
-          {busy ? "Загружаем…" : "Загрузить"}
+          {busy
+            ? preview
+              ? "Загружаем…"
+              : "Проверяем файл…"
+            : preview
+              ? `Загрузить ${preview.created + preview.updated} товаров`
+              : result
+                ? "Готово"
+                : "Загрузить"}
         </button>
       </DialogContent>
     </Dialog>
