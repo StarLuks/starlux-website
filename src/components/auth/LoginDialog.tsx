@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { isStaff, usePortal } from "@/store/portal";
 
@@ -15,6 +16,7 @@ const LoginDialog = ({ open, onOpenChange }: Props) => {
   const [form, setForm] = useState({ login: "", password: "" });
   const [error, setError] = useState("");
   const [show, setShow] = useState(false);
+  const [remember, setRemember] = useState(() => localStorage.getItem("starlux-remember") !== "0");
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: FormEvent) => {
@@ -26,7 +28,8 @@ const LoginDialog = ({ open, onOpenChange }: Props) => {
     setLoading(true);
     setError("");
     try {
-      const u = await login(form.login, form.password);
+      localStorage.setItem("starlux-remember", remember ? "1" : "0");
+      const u = await login(form.login, form.password, remember);
       onOpenChange(false);
       setForm({ login: "", password: "" });
       navigate(isStaff(u) ? "/manager" : "/cabinet");
@@ -96,6 +99,14 @@ const LoginDialog = ({ open, onOpenChange }: Props) => {
                 <Icon name={show ? "EyeOff" : "Eye"} size={18} />
               </button>
             </div>
+          </label>
+
+          <label className="flex cursor-pointer select-none items-center justify-between gap-3 rounded-2xl px-1">
+            <span className="flex items-center gap-2.5">
+              <Checkbox checked={remember} onCheckedChange={(v) => setRemember(v === true)} className="h-5 w-5 rounded-md" />
+              <span className="text-sm">Запомнить меня</span>
+            </span>
+            <span className="text-xs text-muted-foreground">{remember ? "на 30 дней" : "до закрытия браузера"}</span>
           </label>
 
           {error && (

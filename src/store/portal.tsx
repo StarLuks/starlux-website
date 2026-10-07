@@ -50,7 +50,7 @@ interface PortalState {
   user: User | null;
   products: Product[];
   lastSync: string;
-  login: (login: string, password: string) => Promise<User>;
+  login: (login: string, password: string, remember?: boolean) => Promise<User>;
   logout: () => Promise<void>;
   reloadCatalog: () => Promise<void>;
 }
@@ -86,9 +86,9 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       .finally(() => setReady(true));
   }, [reloadCatalog]);
 
-  const login = useCallback(async (l: string, p: string) => {
-    const d = await api<{ token: string; user: User }>("login", { login: l, password: p });
-    setToken(d.token);
+  const login = useCallback(async (l: string, p: string, remember = true) => {
+    const d = await api<{ token: string; user: User }>("login", { login: l, password: p, remember });
+    setToken(d.token, remember);
     setUser(d.user);
     await reloadCatalog().catch(() => undefined);
     return d.user;

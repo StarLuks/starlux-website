@@ -227,7 +227,7 @@ def handler(event: dict, context) -> dict:
                 return resp(403, {'error': 'Учётная запись заблокирована. Свяжитесь с менеджером'})
             token = secrets.token_hex(24)
             q(cur, "INSERT INTO {S}.sessions (token, user_id, expires_at) VALUES (%s, %s, %s)",
-              (token, u['id'], datetime.utcnow() + timedelta(days=30)))
+              (token, u['id'], datetime.utcnow() + (timedelta(days=30) if body.get('remember', True) else timedelta(hours=12))))
             return resp(200, {'token': token, 'user': public_user(u)})
 
         user = current_user(cur, headers)
