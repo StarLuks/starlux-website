@@ -72,6 +72,75 @@ def public_user(u):
             'createdAt': u['created_at'], 'priceTypeId': u.get('price_type_id')}
 
 
+def _active_admins(cur, exclude_id=0):
+    q(cur, "SELECT COUNT(*) AS n FROM {S}.users WHERE role = 'admin' AND NOT blocked AND id <> %s", (exclude_id,))
+    return cur.fetchone()['n']
+
+
+def staff_action(cur, action, body, me):
+    if action == 'staff_list':
+        q(cur, "SELECT u.*, (SELECT MAX(s.expires_at) FROM {S}.sessions s WHERE s.user_id = u.id) AS last_session "
+               "FROM {S}.users u WHERE u.role IN ('manager', 'admin') ORDER BY u.role, u.created_at")
+        return 200, {'staff': [{**public_user(u), 'isMe': u['id'] == me['id']} for u in cur.fetchall()]}
+
+    if action == 'staff_save':
+        sid = int(body.get('id') or 0)
+        login = (body.get('login') or '').strip()
+        name = (body.get('contact') or '').strip()
+        role = body.get('role') if body.get('role') in STAFF else 'manager'
+        pw = body.get('password') or ''
+        if not login or not name:
+            return 400, {'error': 'Заполните ФИО и логин'}
+        if pw and len(pw) < 6:
+            return 400, {'error': 'Пароль — минимум 6 символов'}
+        q(cur, "SELECT 1 FROM {S}.users WHERE lower(login) = lower(%s) AND id <> %s", (login, sid))
+        if cur.fetchone():
+            return 409, {'error': 'Такой логин уже занят'}
+        phone = (body.get('phone') or '').strip()
+        if not sid:
+            if not pw:
+                return 400, {'error': 'Задайте пароль (минимум 6 символов)'}
+            q(cur, "SELECT company FROM {S}.users WHERE id = %s", (me['id'],))
+            company = (cur.fetchone() or {}).get('company') or ''
+            q(cur, "INSERT INTO {S}.users (role, login, password_hash, company, inn, contact, phone) "
+                   "VALUES (%s, %s, %s, %s, '', %s, %s) RETURNING id", (role, login, hash_pw(pw), company, name, phone))
+            return 200, {'ok': True, 'id': cur.fetchone()['id']}
+        q(cur, "SELECT * FROM {S}.users WHERE id = %s AND role IN ('manager', 'admin')", (sid,))
+        u = cur.fetchone()
+        if not u:
+            return 404, {'error': 'Сотрудник не найден'}
+        if u['role'] == 'admin' and role != 'admin':
+            if sid == me['id']:
+                return 409, {'error': 'Нельзя снять права администратора с самого себя'}
+            if not u['blocked'] and _active_admins(cur, sid) == 0:
+                return 409, {'error': 'Должен остаться хотя бы один администратор'}
+        q(cur, "UPDATE {S}.users SET login = %s, contact = %s, phone = %s, role = %s WHERE id = %s",
+          (login, name, phone, role, sid))
+        if pw:
+            q(cur, "UPDATE {S}.users SET password_hash = %s WHERE id = %s", (hash_pw(pw), sid))
+            if sid != me['id']:
+                q(cur, "UPDATE {S}.sessions SET expires_at = NOW() WHERE user_id = %s", (sid,))
+        return 200, {'ok': True, 'id': sid}
+
+    if action == 'staff_toggle':
+        sid = int(body.get('id') or 0)
+        if sid == me['id']:
+            return 409, {'error': 'Нельзя заблокировать самого себя'}
+        q(cur, "SELECT role, blocked FROM {S}.users WHERE id = %s AND role IN ('manager', 'admin')", (sid,))
+        u = cur.fetchone()
+        if not u:
+            return 404, {'error': 'Сотрудник не найден'}
+        if u['role'] == 'admin' and not u['blocked'] and _active_admins(cur, sid) == 0:
+            return 409, {'error': 'Должен остаться хотя бы один администратор'}
+        q(cur, "UPDATE {S}.users SET blocked = NOT blocked WHERE id = %s RETURNING blocked", (sid,))
+        blocked = cur.fetchone()['blocked']
+        if blocked:
+            q(cur, "UPDATE {S}.sessions SET expires_at = NOW() WHERE user_id = %s", (sid,))
+        return 200, {'blocked': blocked}
+
+    return 404, {'error': 'Неизвестное действие'}
+
+
 def client_price_type(cur, user):
     """Активный тип цены клиента; если не назначен или отключён — основной."""
     if user and user.get('role') == 'client' and user.get('price_type_id'):
@@ -430,6 +499,11 @@ def handler(event: dict, context) -> dict:
             if err:
                 return resp(409, {'error': err})
             return resp(200, {'ok': True})
+
+        if action.startswith('staff_'):
+            if user['role'] != 'admin':
+                return resp(403, {'error': 'Управлять сотрудниками может только администратор'})
+            return resp(*staff_action(cur, action, body, user))
 
         if action == 'clients':
             q(cur, "SELECT u.*, (SELECT COUNT(*) FROM {S}.orders o WHERE o.client_id = u.id) AS orders_count, "

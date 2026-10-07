@@ -6,6 +6,7 @@ import NewClientDialog from "@/components/manager/NewClientDialog";
 import ClientCard from "@/components/manager/ClientCard";
 import NomenclatureSection from "@/components/manager/NomenclatureSection";
 import PriceTypesSection from "@/components/manager/PriceTypesSection";
+import StaffSection from "@/components/manager/StaffSection";
 import ProductCardById from "@/components/manager/ProductCardById";
 import LeadsSection, { Lead } from "@/components/manager/LeadsSection";
 import OrdersFilterBar, { EMPTY_FILTER, OrdersFilter } from "@/components/manager/OrdersFilterBar";
@@ -17,7 +18,7 @@ import { cn } from "@/lib/utils";
 import Icon from "@/components/ui/icon";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type Tab = "orders" | "clients" | "nomenclature" | "prices" | "leads";
+type Tab = "orders" | "clients" | "nomenclature" | "prices" | "leads" | "staff";
 
 const Manager = () => {
   const { ready, user, products, logout, lastSync, reloadCatalog } = usePortal();
@@ -94,7 +95,7 @@ const Manager = () => {
   if (!ready) return <div className="grid min-h-screen place-items-center text-muted-foreground">Загрузка…</div>;
   if (!isStaff(user)) return <Navigate to="/" replace state={{ login: true }} />;
 
-  const isRef = tab === "nomenclature" || tab === "prices" || tab === "leads";
+  const isRef = tab === "nomenclature" || tab === "prices" || tab === "leads" || tab === "staff";
   const today = new Date().toDateString();
   const todayOrders = orders.filter((o) => new Date(o.date).toDateString() === today);
   const newCount = orders.filter((o) => o.status === "Новый" || o.status === "Передан в 1С").length;
@@ -143,6 +144,7 @@ const Manager = () => {
           { label: newLeads ? `Заявки · ${newLeads} нов.` : "Заявки", active: tab === "leads", onClick: () => setTab("leads") },
           { label: "Номенклатура", active: tab === "nomenclature", onClick: () => setTab("nomenclature") },
           { label: "Типы цен", active: tab === "prices", onClick: () => setTab("prices") },
+          ...(user?.role === "admin" ? [{ label: "Сотрудники", active: tab === "staff", onClick: () => setTab("staff") }] : []),
           { label: "Прайс ↓", onClick: () => downloadPriceList(products) },
         ]}
         right={
@@ -174,6 +176,7 @@ const Manager = () => {
 
       {tab === "nomenclature" && <NomenclatureSection onChanged={() => reloadCatalog().catch(() => undefined)} />}
       {tab === "prices" && <PriceTypesSection />}
+      {tab === "staff" && user?.role === "admin" && <StaffSection />}
       {tab === "leads" && <LeadsSection onCount={setNewLeads} />}
       <ProductCardById
         productId={openProduct}
