@@ -13,13 +13,28 @@ interface Props {
   empty?: string;
   detailed?: boolean;
   onProductClick?: (productId: string) => void;
+  highlight?: string;
 }
+
+const Mark = ({ text, q }: { text: string; q: string }) => {
+  const i = q ? text.toLowerCase().indexOf(q) : -1;
+  if (i < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, i)}
+      <mark className="rounded bg-amber-300/70 px-0.5 text-foreground">{text.slice(i, i + q.length)}</mark>
+      {text.slice(i + q.length)}
+    </>
+  );
+};
 
 export const fmtDate = (iso: string) =>
   new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Заказов пока нет", detailed, onProductClick }: Props) => {
+const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Заказов пока нет", detailed, onProductClick, highlight }: Props) => {
   const [open, setOpen] = useState<number | null>(null);
+  const hq = (highlight ?? "").trim().toLowerCase();
+  const hit = (name: string) => !!hq && name.toLowerCase().includes(hq);
   const cols = showClient
     ? "md:grid-cols-[110px_150px_1.6fr_110px_1fr_150px_32px]"
     : "md:grid-cols-[110px_160px_110px_1fr_150px_32px]";
@@ -52,7 +67,14 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
               <span className="font-head font-medium">{o.number}</span>
               <span className="text-muted-foreground max-md:text-right">{fmtDate(o.date)}</span>
               {showClient && <span className="col-span-2 truncate font-head md:col-span-1">{showClient(o)}</span>}
-              <span className="text-muted-foreground">{o.items.length} поз.</span>
+              <span className="text-muted-foreground">
+                {o.items.length} поз.
+                {hq && o.items.some((it) => hit(it.name)) && (
+                  <span className="ml-1.5 rounded-full bg-amber-300/60 px-1.5 py-0.5 text-[0.85em] text-foreground">
+                    найдено {o.items.filter((it) => hit(it.name)).length}
+                  </span>
+                )}
+              </span>
               <span className="max-md:text-right">{rub(o.total)}</span>
               <span onClick={(e) => statusCell && e.stopPropagation()}>{statusCell ? statusCell(o) : <StatusBadge status={o.status} />}</span>
               <Icon name="ChevronDown" size={16} className={cn("justify-self-end transition-transform", isOpen && "rotate-180")} />
@@ -92,7 +114,7 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                       </thead>
                       <tbody>
                         {o.items.map((it, i) => (
-                          <tr key={it.productId} className="border-b border-border last:border-0">
+                          <tr key={it.productId} className={cn("border-b border-border last:border-0", hit(it.name) && "bg-amber-200/40")}>
                             <td className="px-3 py-2 text-center text-muted-foreground">{i + 1}</td>
                             <td className="px-3 py-2 font-head">
                               {onProductClick ? (
@@ -101,10 +123,10 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                                   onClick={() => onProductClick(it.productId)}
                                   className="text-left text-primary underline-offset-2 hover:underline"
                                 >
-                                  {it.name}
+                                  <Mark text={it.name} q={hq} />
                                 </button>
                               ) : (
-                                it.name
+                                <Mark text={it.name} q={hq} />
                               )}
                             </td>
                             <td className="px-3 py-2 text-muted-foreground">{it.article || "—"}</td>
@@ -145,8 +167,10 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                 <div className="space-y-1.5 text-[0.8em]">
                   {o.items.map((it) => {
                     return (
-                      <div key={it.productId} className="grid grid-cols-[1fr_auto_auto] gap-4">
-                        <span className="font-head">{it.name}</span>
+                      <div key={it.productId} className={cn("grid grid-cols-[1fr_auto_auto] gap-4 rounded", hit(it.name) && "bg-amber-200/40")}>
+                        <span className="font-head">
+                          <Mark text={it.name} q={hq} />
+                        </span>
                         <span className="text-muted-foreground">{it.qty} кор.</span>
                         <span className="w-28 text-right">{rub(it.sum)}</span>
                       </div>

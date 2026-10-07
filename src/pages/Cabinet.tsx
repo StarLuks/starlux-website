@@ -22,6 +22,7 @@ import {
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import Icon from "@/components/ui/icon";
+import { cn } from "@/lib/utils";
 
 type Tab = "catalog" | "orders";
 
@@ -143,7 +144,7 @@ const Cabinet = () => {
   };
 
   return (
-    <main className="grid min-h-screen grid-rows-[auto_auto_1fr] gap-5 px-4 pb-6 pt-5 md:h-screen md:px-6">
+    <main className={cn("grid min-h-screen grid-rows-[auto_auto_1fr] gap-5 px-4 pb-6 pt-5 md:h-screen md:px-6", tab === "catalog" && "max-md:pb-28")}>
       <TopNav
         items={[
           { label: "Новый заказ", active: tab === "catalog", onClick: () => setTab("catalog") },
@@ -238,6 +239,7 @@ const Cabinet = () => {
             <OrdersList
               orders={filteredOrders}
               detailed
+              highlight={of.q}
               empty={
                 loading
                   ? "Загрузка…"
