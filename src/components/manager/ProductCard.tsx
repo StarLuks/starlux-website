@@ -51,12 +51,14 @@ const toForm = (p: NomProduct | null, groupId?: number | null): Form => ({
   prices: Object.fromEntries(Object.entries(p?.prices ?? {}).map(([k, v]) => [k, String(v)])),
 });
 
+type Tab = "main" | "images" | "prices";
+
 const inputCls =
-  "h-11 w-full rounded-2xl border border-border bg-pill px-4 text-sm outline-none transition focus:border-ring focus:bg-card focus:ring-4 focus:ring-ring/15";
+  "h-10 w-full rounded-xl border border-border bg-pill px-3.5 text-sm outline-none transition focus:border-ring focus:bg-card focus:ring-4 focus:ring-ring/15";
 
 const Field = ({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) => (
-  <label className={cn("block space-y-1.5", className)}>
-    <span className="text-xs font-medium text-muted-foreground">{label}</span>
+  <label className={cn("block space-y-1", className)}>
+    <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
     {children}
   </label>
 );
@@ -67,12 +69,14 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
   const [images, setImages] = useState<ProductImage[]>(product?.images ?? []);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(0);
+  const [tab, setTab] = useState<Tab>("main");
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
       setForm(toForm(product, defaultGroupId));
       setImages(product?.images ?? []);
+      setTab("main");
     }
   }, [open, product, defaultGroupId]);
 
@@ -82,10 +86,12 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
   const persist = async (): Promise<string | null> => {
     if (!form.name.trim()) {
       toast({ title: "Укажите наименование товара" });
+      setTab("main");
       return null;
     }
     if (!form.groupId) {
       toast({ title: "Выберите группу номенклатуры" });
+      setTab("main");
       return null;
     }
     const prices: Record<string, string | null> = {};
@@ -163,47 +169,71 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
     onSaved();
   };
 
+  const filledPrices = activeTypes.filter((t) => (form.prices[t.id] ?? "").trim() !== "").length;
+  const tabs: { key: Tab; label: string; icon: string; badge?: string }[] = [
+    { key: "main", label: "Основная", icon: "FileText" },
+    { key: "images", label: "Изображения", icon: "Images", badge: String(images.length) },
+    { key: "prices", label: "Цены", icon: "Tag", badge: `${filledPrices}/${activeTypes.length}` },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto rounded-[24px] p-0">
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border bg-card/95 px-6 py-4 pr-14 backdrop-blur">
-          <div className="min-w-0">
-            <DialogTitle className="truncate font-head text-xl">{form.name || "Новый товар"}</DialogTitle>
-            <DialogDescription className="text-xs">
-              {product ? `Карточка товара · ${product.code1c ? `Код 1С ${product.code1c}` : `ID ${product.id}`}` : "Заполните реквизиты товара"}
-            </DialogDescription>
+      <DialogContent className="flex max-h-[88vh] max-w-2xl flex-col gap-0 overflow-hidden rounded-[22px] p-0">
+        <div className="flex items-center justify-between gap-3 px-5 pb-3 pt-4 pr-12">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-pill text-muted-foreground">
+              {images[0] ? <img src={(images.find((i) => i.isMain) ?? images[0]).url} alt="" className="h-full w-full object-cover" /> : <Icon name="Package" size={18} />}
+            </span>
+            <div className="min-w-0">
+              <DialogTitle className="truncate font-head text-lg leading-tight">{form.name || "Новый товар"}</DialogTitle>
+              <DialogDescription className="truncate text-xs">
+                {product ? (product.code1c ? `Код 1С ${product.code1c}` : `ID ${product.id}`) + ` · остаток ${product.stock} ${product.unit}` : "Заполните реквизиты товара"}
+              </DialogDescription>
+            </div>
           </div>
-          <label className="flex shrink-0 items-center gap-2 rounded-full bg-pill px-4 py-2 text-sm">
+          <label className="flex shrink-0 items-center gap-2 rounded-full bg-pill px-3 py-1.5 text-xs font-medium">
             Активна
             <Switch checked={form.active} onCheckedChange={(v) => set("active", v)} />
           </label>
         </div>
 
-        <div className="grid gap-6 p-6 md:grid-cols-[1.5fr_1fr]">
-          <div className="space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Основное</h3>
-            <Field label="Группа номенклатуры">
-              <select className={inputCls} value={form.groupId} onChange={(e) => set("groupId", e.target.value)}>
-                <option value="">— выберите группу —</option>
-                {groups.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Наименование">
-              <input className={inputCls} value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Как видит клиент в каталоге" />
-            </Field>
-            <Field label="Полное наименование">
-              <textarea
-                className={cn(inputCls, "h-auto min-h-[70px] py-3")}
-                value={form.fullName}
-                onChange={(e) => set("fullName", e.target.value)}
-                placeholder="Для документов"
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
+        <div className="flex gap-1 border-b border-border px-5">
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className={cn(
+                "-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
+                tab === t.key ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Icon name={t.icon} size={15} />
+              {t.label}
+              {t.badge && <span className="rounded-full bg-pill px-1.5 text-[10px] font-semibold">{t.badge}</span>}
+            </button>
+          ))}
+        </div>
+
+        <div className="min-h-[340px] flex-1 overflow-y-auto px-5 py-4">
+          {tab === "main" && (
+            <div className="grid animate-fade-in grid-cols-2 gap-x-3 gap-y-3">
+              <Field label="Группа номенклатуры" className="col-span-2">
+                <select className={inputCls} value={form.groupId} onChange={(e) => set("groupId", e.target.value)}>
+                  <option value="">— выберите группу —</option>
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Наименование" className="col-span-2">
+                <input className={inputCls} value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Как видит клиент в каталоге" />
+              </Field>
+              <Field label="Полное наименование" className="col-span-2">
+                <input className={inputCls} value={form.fullName} onChange={(e) => set("fullName", e.target.value)} placeholder="Для документов" />
+              </Field>
               <Field label="Артикул">
                 <input className={inputCls} value={form.article} onChange={(e) => set("article", e.target.value)} />
               </Field>
@@ -216,13 +246,9 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
               <Field label="Единица измерения">
                 <input className={inputCls} value={form.unit} onChange={(e) => set("unit", e.target.value)} placeholder="кор., кг, шт." />
               </Field>
-            </div>
-
-            <h3 className="pt-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Характеристики</h3>
-            <Field label="Производитель">
-              <input className={inputCls} value={form.manufacturer} onChange={(e) => set("manufacturer", e.target.value)} />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
+              <Field label="Производитель" className="col-span-2">
+                <input className={inputCls} value={form.manufacturer} onChange={(e) => set("manufacturer", e.target.value)} />
+              </Field>
               <Field label="Вид упаковки">
                 <input className={inputCls} value={form.pack} onChange={(e) => set("pack", e.target.value)} placeholder="короб 10 кг" />
               </Field>
@@ -233,101 +259,87 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
                 <input className={inputCls} value={form.dimensions} onChange={(e) => set("dimensions", e.target.value)} placeholder="Д × Ш × В, см" />
               </Field>
             </div>
-          </div>
+          )}
 
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Изображения · {images.length}</h3>
-                <button
-                  type="button"
-                  onClick={() => fileRef.current?.click()}
-                  className="flex items-center gap-1.5 rounded-full bg-pill px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
-                >
-                  <Icon name="ImagePlus" size={14} /> Добавить
-                </button>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    upload(e.target.files);
-                    e.target.value = "";
-                  }}
-                />
-              </div>
-              {images.length === 0 && uploading === 0 ? (
-                <button
-                  type="button"
-                  onClick={() => fileRef.current?.click()}
-                  className="grid h-36 w-full place-items-center rounded-2xl border-2 border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-ring hover:text-foreground"
-                >
-                  <span className="flex flex-col items-center gap-2">
-                    <Icon name="ImagePlus" size={26} />
-                    Загрузите фото товара
-                  </span>
-                </button>
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {images.map((img) => (
-                    <div
-                      key={img.id}
-                      className={cn(
-                        "group relative aspect-square overflow-hidden rounded-xl border-2 bg-pill",
-                        img.isMain ? "border-primary" : "border-transparent"
-                      )}
-                    >
-                      <img src={img.url} alt="" className="h-full w-full object-cover" />
-                      {img.isMain && (
-                        <span className="absolute left-1 top-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                          главное
-                        </span>
-                      )}
-                      <div className="absolute inset-x-1 bottom-1 flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100">
-                        {!img.isMain && (
-                          <button
-                            type="button"
-                            title="Сделать главным"
-                            onClick={() => makeMain(img)}
-                            className="grid h-7 w-7 place-items-center rounded-full bg-card/90 shadow transition-colors hover:bg-primary hover:text-primary-foreground"
-                          >
-                            <Icon name="Star" size={13} />
-                          </button>
-                        )}
+          {tab === "images" && (
+            <div className="animate-fade-in space-y-3">
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  upload(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+              <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4">
+                {images.map((img) => (
+                  <div
+                    key={img.id}
+                    className={cn("group relative aspect-square overflow-hidden rounded-xl border-2 bg-pill", img.isMain ? "border-primary" : "border-transparent")}
+                  >
+                    <img src={img.url} alt="" className="h-full w-full object-cover" />
+                    {img.isMain && (
+                      <span className="absolute left-1.5 top-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">главное</span>
+                    )}
+                    <div className="absolute inset-x-1.5 bottom-1.5 flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100">
+                      {!img.isMain && (
                         <button
                           type="button"
-                          title="Удалить"
-                          onClick={() => removeImage(img)}
-                          className="grid h-7 w-7 place-items-center rounded-full bg-card/90 text-destructive shadow transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                          title="Сделать главным"
+                          onClick={() => makeMain(img)}
+                          className="grid h-7 w-7 place-items-center rounded-full bg-card/90 shadow transition-colors hover:bg-primary hover:text-primary-foreground"
                         >
-                          <Icon name="Trash2" size={13} />
+                          <Icon name="Star" size={13} />
                         </button>
-                      </div>
+                      )}
+                      <button
+                        type="button"
+                        title="Удалить"
+                        onClick={() => removeImage(img)}
+                        className="grid h-7 w-7 place-items-center rounded-full bg-card/90 text-destructive shadow transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                      >
+                        <Icon name="Trash2" size={13} />
+                      </button>
                     </div>
-                  ))}
-                  {Array.from({ length: uploading }).map((_, i) => (
-                    <div key={`u${i}`} className="grid aspect-square place-items-center rounded-xl bg-pill">
-                      <Icon name="Loader2" size={20} className="animate-spin text-muted-foreground" />
-                    </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+                {Array.from({ length: uploading }).map((_, i) => (
+                  <div key={`u${i}`} className="grid aspect-square place-items-center rounded-xl bg-pill">
+                    <Icon name="Loader2" size={20} className="animate-spin text-muted-foreground" />
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="grid aspect-square place-items-center rounded-xl border-2 border-dashed border-border text-xs text-muted-foreground transition-colors hover:border-ring hover:text-foreground"
+                >
+                  <span className="flex flex-col items-center gap-1.5">
+                    <Icon name="ImagePlus" size={22} />
+                    Добавить
+                  </span>
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                JPG, PNG или WEBP до 8 МБ, можно выбрать сразу несколько. Главное фото клиенты видят в каталоге первым — нажмите ★, чтобы назначить.
+              </p>
             </div>
+          )}
 
-            <div className="space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Цены</h3>
-              <div className="overflow-hidden rounded-2xl border border-border">
-                <div className="grid grid-cols-[1fr_130px] bg-pill px-4 py-2 text-xs text-muted-foreground">
+          {tab === "prices" && (
+            <div className="animate-fade-in space-y-2">
+              <div className="overflow-hidden rounded-xl border border-border">
+                <div className="grid grid-cols-[1fr_140px] bg-pill px-4 py-2 text-[11px] font-medium text-muted-foreground">
                   <span>Тип цены</span>
-                  <span>Цена, ₽</span>
+                  <span className="text-right">Цена за кг, ₽</span>
                 </div>
                 {activeTypes.length === 0 && (
                   <div className="px-4 py-4 text-center text-sm text-muted-foreground">Нет активных типов цен</div>
                 )}
                 {activeTypes.map((t) => (
-                  <div key={t.id} className="grid grid-cols-[1fr_130px] items-center gap-2 border-t border-border px-4 py-2">
+                  <div key={t.id} className="grid grid-cols-[1fr_140px] items-center gap-2 border-t border-border px-4 py-2">
                     <span className="text-sm">
                       {t.name}
                       {t.isMain && <span className="ml-1.5 text-[10px] font-semibold uppercase text-primary">основная</span>}
@@ -337,25 +349,25 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
                       onChange={(e) => set("prices", { ...form.prices, [t.id]: e.target.value })}
                       inputMode="decimal"
                       placeholder="не задана"
-                      className="h-9 w-full rounded-xl border border-border bg-card px-3 text-right text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                      className="h-9 w-full rounded-lg border border-border bg-card px-3 text-right text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                     />
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground">Цены за единицу (кг). Пустое поле — цена не задана.</p>
+              <p className="text-xs text-muted-foreground">Показаны все активные типы цен. Пустое поле — цена не задана.</p>
             </div>
-          </div>
+          )}
         </div>
 
-        <div className="sticky bottom-0 flex justify-end gap-2 border-t border-border bg-card/95 px-6 py-4 backdrop-blur">
-          <button type="button" onClick={onClose} className="rounded-full px-5 py-2.5 text-sm font-medium transition-colors hover:bg-accent">
+        <div className="flex justify-end gap-2 border-t border-border px-5 py-3">
+          <button type="button" onClick={onClose} className="rounded-full px-4 py-2 text-sm font-medium transition-colors hover:bg-accent">
             Отмена
           </button>
           <button
             type="button"
             onClick={save}
             disabled={saving}
-            className="flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 font-head text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:opacity-90 disabled:opacity-60"
+            className="flex items-center gap-2 rounded-full bg-primary px-5 py-2 font-head text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:opacity-90 disabled:opacity-60"
           >
             {saving && <Icon name="Loader2" size={16} className="animate-spin" />}
             Сохранить

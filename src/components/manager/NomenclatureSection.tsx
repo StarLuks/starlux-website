@@ -40,6 +40,7 @@ const NomenclatureSection = ({ onChanged }: Props) => {
   const [groupEdit, setGroupEdit] = useState<Partial<ProductGroup> | null>(null);
   const [groupDel, setGroupDel] = useState<ProductGroup | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [priceTypeId, setPriceTypeId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -64,7 +65,9 @@ const NomenclatureSection = ({ onChanged }: Props) => {
     onChanged?.();
   };
 
-  const mainType = priceTypes.find((t) => t.isMain);
+  const activeTypes = priceTypes.filter((t) => t.active);
+  const mainType =
+    activeTypes.find((t) => t.id === priceTypeId) ?? activeTypes.find((t) => t.isMain) ?? activeTypes[0];
   const groupName = (id: number | null) => groups.find((g) => g.id === id)?.name ?? "—";
 
   const filtered = useMemo(() => {
@@ -213,6 +216,23 @@ const NomenclatureSection = ({ onChanged }: Props) => {
               className="h-10 w-full rounded-full bg-pill pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-ring/30"
             />
           </div>
+          <label className="relative flex h-10 items-center rounded-full bg-pill pl-3.5 pr-2 text-xs font-medium">
+            <Icon name="Tag" size={14} className="mr-1.5 text-muted-foreground" />
+            <select
+              value={mainType?.id ?? ""}
+              onChange={(e) => setPriceTypeId(Number(e.target.value))}
+              className="cursor-pointer appearance-none bg-transparent pr-5 outline-none"
+              aria-label="Тип цены"
+            >
+              {activeTypes.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                  {t.isMain ? " (основная)" : ""}
+                </option>
+              ))}
+            </select>
+            <Icon name="ChevronDown" size={14} className="pointer-events-none absolute right-3 text-muted-foreground" />
+          </label>
           <div className="flex rounded-full bg-pill p-1 text-xs font-medium">
             {(
               [
@@ -233,12 +253,13 @@ const NomenclatureSection = ({ onChanged }: Props) => {
           </div>
         </div>
 
-        <div className="hidden h-[34px] items-center gap-3 border-t border-border px-[22px] text-[0.72em] text-muted-foreground lg:grid lg:grid-cols-[48px_2fr_110px_110px_1fr_110px_70px]">
+        <div className="hidden h-[34px] items-center gap-3 border-t border-border px-[22px] text-[0.72em] text-muted-foreground lg:grid lg:grid-cols-[48px_2fr_100px_100px_1fr_100px_110px_70px]">
           <span />
           <span>Наименование</span>
           <span>Артикул</span>
           <span>Код 1С</span>
           <span>Группа</span>
+          <span className="text-right">Остаток</span>
           <span className="text-right">{mainType?.name ?? "Цена"}</span>
           <span className="text-right">Активна</span>
         </div>
@@ -257,7 +278,7 @@ const NomenclatureSection = ({ onChanged }: Props) => {
                 key={p.id}
                 onClick={() => setEditing(p)}
                 className={cn(
-                  "grid cursor-pointer grid-cols-[48px_1fr_auto] items-center gap-3 border-t border-border px-4 py-2.5 text-sm transition-colors hover:bg-accent/40 lg:grid-cols-[48px_2fr_110px_110px_1fr_110px_70px] lg:px-[22px]",
+                  "grid cursor-pointer grid-cols-[48px_1fr_auto] items-center gap-3 border-t border-border px-4 py-2.5 text-sm transition-colors hover:bg-accent/40 lg:grid-cols-[48px_2fr_100px_100px_1fr_100px_110px_70px] lg:px-[22px]",
                   !p.active && "opacity-55"
                 )}
               >
@@ -270,12 +291,22 @@ const NomenclatureSection = ({ onChanged }: Props) => {
                     {[p.pack, p.unit, p.manufacturer].filter(Boolean).join(" · ")}
                   </span>
                   <span className="text-xs text-muted-foreground lg:hidden">
-                    {groupName(p.groupId)} · {price !== undefined ? rub(price) : "цена не задана"}
+                    {groupName(p.groupId)} · ост. {p.stock} {p.unit} · {price !== undefined ? rub(price) : "цена не задана"}
                   </span>
                 </span>
                 <span className="hidden truncate text-muted-foreground lg:block">{p.article || "—"}</span>
                 <span className="hidden truncate text-muted-foreground lg:block">{p.code1c || "—"}</span>
                 <span className="hidden truncate lg:block">{groupName(p.groupId)}</span>
+                <span className="hidden text-right lg:block">
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-xs font-medium",
+                      p.stock <= 0 ? "bg-destructive/10 text-destructive" : p.stock < 30 ? "bg-amber-100 text-amber-800" : "bg-success/10 text-success"
+                    )}
+                  >
+                    {p.stock <= 0 ? "нет" : `${p.stock} ${p.unit}`}
+                  </span>
+                </span>
                 <span className="hidden text-right font-medium lg:block">
                   {price !== undefined ? rub(price) : <span className="font-normal text-muted-foreground">—</span>}
                 </span>
