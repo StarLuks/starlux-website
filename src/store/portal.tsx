@@ -36,6 +36,7 @@ export interface OrderItem {
   manufacturer?: string;
   code1c?: string;
   unit?: string;
+  weight?: number;
 }
 
 export interface Order {

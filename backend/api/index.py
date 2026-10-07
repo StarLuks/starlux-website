@@ -127,7 +127,7 @@ def load_orders(cur, client_id=None, only_new=False):
     ids = tuple(o['id'] for o in orders)
     q(cur, "SELECT i.order_id, i.product_id AS \"productId\", i.name, i.qty, i.box_price AS \"boxPrice\", i.sum, "
            "COALESCE(p.article, '') AS article, COALESCE(p.manufacturer, '') AS manufacturer, "
-           "COALESCE(p.code_1c, '') AS \"code1c\", COALESCE(p.unit, '') AS unit "
+           "COALESCE(p.code_1c, '') AS \"code1c\", COALESCE(p.unit, '') AS unit, COALESCE(p.pack_kg, 0) AS weight "
            "FROM {S}.order_items i LEFT JOIN {S}.products p ON p.id = i.product_id "
            "WHERE i.order_id IN %s ORDER BY i.id", (ids,))
     items = {}

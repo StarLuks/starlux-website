@@ -60,9 +60,10 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
               <div className="animate-fade-in border-t border-border bg-background/30 px-4 py-4 md:px-[22px]">
                 {detailed ? (
                   <div className="overflow-x-auto rounded-2xl border border-border bg-card">
-                    <table className="w-full min-w-[820px] text-[0.8em]">
+                    <table className="w-full min-w-[860px] text-[0.8em]">
                       <thead>
                         <tr className="border-b border-border text-left text-muted-foreground">
+                          <th className="w-10 px-3 py-2 text-center font-normal">№</th>
                           <th className="px-3 py-2 font-normal">Наименование</th>
                           <th className="px-3 py-2 font-normal">Артикул</th>
                           <th className="px-3 py-2 font-normal">Производитель</th>
@@ -74,8 +75,9 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                         </tr>
                       </thead>
                       <tbody>
-                        {o.items.map((it) => (
+                        {o.items.map((it, i) => (
                           <tr key={it.productId} className="border-b border-border last:border-0">
+                            <td className="px-3 py-2 text-center text-muted-foreground">{i + 1}</td>
                             <td className="px-3 py-2 font-head">{it.name}</td>
                             <td className="px-3 py-2 text-muted-foreground">{it.article || "—"}</td>
                             <td className="px-3 py-2 text-muted-foreground">{it.manufacturer || "—"}</td>
@@ -89,7 +91,25 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                       </tbody>
                       <tfoot>
                         <tr className="border-t border-border">
-                          <td colSpan={7} className="px-3 py-2 text-right text-muted-foreground">Итого:</td>
+                          <td colSpan={9} className="px-3 py-2">
+                            <div className="flex flex-wrap justify-end gap-x-6 gap-y-1 text-muted-foreground">
+                              <span>
+                                Всего позиций: <b className="text-foreground">{o.items.length}</b>
+                              </span>
+                              <span>
+                                Общая масса:{" "}
+                                <b className="text-foreground">
+                                  {o.items
+                                    .reduce((m, it) => m + Number(it.weight ?? 0) * Number(it.qty), 0)
+                                    .toLocaleString("ru-RU", { maximumFractionDigits: 3 })}{" "}
+                                  кг
+                                </b>
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td colSpan={8} className="px-3 py-2 text-right text-muted-foreground">Итого:</td>
                           <td className="whitespace-nowrap px-3 py-2 text-right font-head font-bold">{rub(o.total)}</td>
                         </tr>
                       </tfoot>
