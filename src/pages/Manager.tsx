@@ -15,6 +15,7 @@ import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import Icon from "@/components/ui/icon";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Tab = "orders" | "clients" | "nomenclature" | "prices" | "leads";
 
@@ -24,6 +25,7 @@ const Manager = () => {
   const [tab, setTab] = useState<Tab>("orders");
   const [of, setOf] = useState<OrdersFilter>(EMPTY_FILTER);
   const [q, setQ] = useState("");
+  const [ptFilter, setPtFilter] = useState<string>("all");
   const [newClient, setNewClient] = useState(false);
   const [editClient, setEditClient] = useState<Client | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -73,8 +75,21 @@ const Manager = () => {
 
   const filteredClients = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return clients.filter((c) => !s || c.company.toLowerCase().includes(s) || c.inn.includes(s) || c.login.toLowerCase().includes(s));
-  }, [clients, q]);
+    return clients
+      .filter((c) => ptFilter === "all" || (ptFilter === "main" ? !c.priceTypeId : String(c.priceTypeId) === ptFilter))
+      .filter((c) => !s || c.company.toLowerCase().includes(s) || c.inn.includes(s) || c.login.toLowerCase().includes(s));
+  }, [clients, q, ptFilter]);
+
+  const clientPriceTypes = useMemo(() => {
+    const m = new Map<string, { name: string; count: number }>();
+    clients.forEach((c) => {
+      if (!c.priceTypeId) return;
+      const k = String(c.priceTypeId);
+      const cur = m.get(k);
+      m.set(k, { name: c.priceTypeName ?? `Тип ${k}`, count: (cur?.count ?? 0) + 1 });
+    });
+    return [...m.entries()].sort((a, b) => a[1].name.localeCompare(b[1].name, "ru"));
+  }, [clients]);
 
   if (!ready) return <div className="grid min-h-screen place-items-center text-muted-foreground">Загрузка…</div>;
   if (!isStaff(user)) return <Navigate to="/" replace state={{ login: true }} />;
@@ -192,6 +207,32 @@ const Manager = () => {
             <OrdersFilterBar value={of} onChange={setOf} clients={clients} counts={statusCounts} />
           ) : (
           <div className="flex flex-wrap gap-2 px-[18px] pb-4">
+            <Select value={ptFilter} onValueChange={setPtFilter}>
+              <SelectTrigger
+                className={cn(
+                  "h-10 w-auto min-w-[190px] gap-2 rounded-full border-0 bg-pill px-4 text-sm font-medium ring-offset-0 focus:ring-2 focus:ring-ring/30",
+                  ptFilter !== "all" && "bg-primary/10 text-primary"
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <Icon name="BadgePercent" size={15} />
+                  <SelectValue />
+                </span>
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl">
+                <SelectItem value="all" className="rounded-xl">
+                  Все типы цен · {clients.length}
+                </SelectItem>
+                <SelectItem value="main" className="rounded-xl">
+                  Основной (не назначен) · {clients.filter((c) => !c.priceTypeId).length}
+                </SelectItem>
+                {clientPriceTypes.map(([id, t]) => (
+                  <SelectItem key={id} value={id} className="rounded-xl">
+                    {t.name} · {t.count}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
