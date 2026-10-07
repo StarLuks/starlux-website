@@ -254,7 +254,7 @@ def handle(cur, action, body):
 
 BASE_COLS = ['Код 1С', 'Артикул', 'Наименование', 'Полное наименование', 'Группа', 'Код группы 1С',
              'Единица измерения', 'Вид упаковки', 'Масса, кг', 'Габариты', 'Штрихкод', 'Производитель',
-             'Остаток', 'Активна']
+             'Остаток', 'Активна', 'Описание']
 
 
 def _template(cur):
@@ -274,11 +274,12 @@ def _template(cur):
         g = cur.fetchone() or {'name': '', 'code_1c': ''}
         ws.append([p['code1c'], p['article'], p['name'], p['fullName'], g['name'], g['code_1c'], p['unit'], p['pack'],
                    float(p['weight']), p['dimensions'], p['barcode'], p['manufacturer'], p['stock'],
-                   'да' if p['active'] else 'нет']
+                   'да' if p['active'] else 'нет', p.get('description') or '']
                   + [float(p['prices'][str(t['id'])]) if str(t['id']) in p['prices'] else None for t in types])
     for i, h in enumerate(header):
         ws.column_dimensions[ws.cell(1, i + 1).column_letter].width = max(12, min(40, len(h) + 4))
     ws.column_dimensions['C'].width = 36
+    ws.column_dimensions[ws.cell(1, BASE_COLS.index('Описание') + 1).column_letter].width = 60
     buf = io.BytesIO()
     wb.save(buf)
     return base64.b64encode(buf.getvalue()).decode()
@@ -286,8 +287,9 @@ def _template(cur):
 
 TEXT_COLS = {'name': 'name', 'full_name': 'fullName', 'article': 'article', 'code_1c': 'code1c',
              'barcode': 'barcode', 'unit': 'unit', 'manufacturer': 'manufacturer', 'dimensions': 'dimensions',
-             'pack': 'pack'}
+             'pack': 'pack', 'description': 'description'}
 UPD_COLS = ['name', 'full_name', 'article', 'code_1c', 'barcode', 'unit', 'manufacturer', 'dimensions', 'pack',
+            'description',
             'pack_kg', 'stock', 'active', 'group_id', 'category']
 UPD_TYPES = {**{c: 'text' for c in UPD_COLS}, 'pack_kg': 'numeric', 'stock': 'integer', 'active': 'boolean',
              'group_id': 'integer'}
@@ -319,6 +321,7 @@ def _import_excel(cur, file_b64, dry=False):
         'pack': col('Вид упаковки', 'Упаковка'), 'weight': col('Масса, кг', 'Масса', 'Вес'),
         'dimensions': col('Габариты'), 'barcode': col('Штрихкод'), 'manufacturer': col('Производитель'),
         'stock': col('Остаток'), 'active': col('Активна', 'Активен'),
+        'description': col('Описание', 'Описание товара'),
     }
     if idx['name'] is None:
         return 400, {'error': 'В первой строке не найдена колонка «Наименование». Скачайте шаблон и заполните его'}
@@ -444,13 +447,14 @@ def _import_excel(cur, file_b64, dry=False):
                 pid, rec['name'], rec.get('full_name') or rec['name'], rec.get('article') or '',
                 rec.get('code_1c') or '', rec.get('barcode') or '', rec.get('unit') or 'кор.',
                 rec.get('manufacturer') or '', rec.get('dimensions') or '', rec.get('pack') or '',
+                (rec.get('description') or '')[:20000],
                 rec['pack_kg'] if rec.get('pack_kg') is not None else Decimal(1),
                 rec['stock'] if rec.get('stock') is not None else 0,
                 rec['active'] if rec.get('active') is not None else True,
                 rec.get('group_id'), rec.get('category') or 'Прочее', sort,
             ))
         execute_values(cur, f"INSERT INTO {schema}.products (id, name, full_name, article, code_1c, barcode, unit, "
-                            f"manufacturer, dimensions, pack, pack_kg, stock, active, group_id, category, sort) VALUES %s",
+                            f"manufacturer, dimensions, pack, description, pack_kg, stock, active, group_id, category, sort) VALUES %s",
                        data, page_size=500)
 
     if upd_rows:
