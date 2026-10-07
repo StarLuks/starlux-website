@@ -91,8 +91,8 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                       </tbody>
                       <tfoot>
                         <tr className="border-t border-border">
-                          <td colSpan={9} className="px-3 py-2">
-                            <div className="flex flex-wrap justify-end gap-x-6 gap-y-1 text-muted-foreground">
+                          <td colSpan={8} className="px-3 py-2">
+                            <div className="flex flex-wrap items-center justify-end gap-x-6 gap-y-1 text-muted-foreground">
                               <span>
                                 Всего позиций: <b className="text-foreground">{o.items.length}</b>
                               </span>
@@ -105,11 +105,9 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                                   кг
                                 </b>
                               </span>
+                              <span>Итого:</span>
                             </div>
                           </td>
-                        </tr>
-                        <tr>
-                          <td colSpan={8} className="px-3 py-2 text-right text-muted-foreground">Итого:</td>
                           <td className="whitespace-nowrap px-3 py-2 text-right font-head font-bold">{rub(o.total)}</td>
                         </tr>
                       </tfoot>
