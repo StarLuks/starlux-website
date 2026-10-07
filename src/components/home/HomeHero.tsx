@@ -111,7 +111,9 @@ const HomeHero = () => {
           </h1>
           <div className="mx-auto mt-8 h-px w-24 bg-gradient-to-r from-transparent via-ice to-transparent" />
           <p className="mt-8 font-head text-xl font-medium text-white/90 drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)] md:text-3xl">
-            Качество без компромиссов. <span className="text-ice">Выгода в каждой поставке.</span>
+            Качество без компромиссов.
+            <br />
+            <span className="text-ice">Выгода в каждой поставке.</span>
           </p>
         </div>
       </div>
