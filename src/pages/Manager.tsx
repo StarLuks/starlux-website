@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import TopNav from "@/components/layout/TopNav";
+import ManagerHeader from "@/components/manager/ManagerHeader";
 import OrdersList from "@/components/order/OrdersList";
 import NewClientDialog from "@/components/manager/NewClientDialog";
 import ClientCard from "@/components/manager/ClientCard";
@@ -137,41 +137,29 @@ const Manager = () => {
         isRef ? "grid-rows-[auto_1fr]" : "grid-rows-[auto_auto_1fr]"
       )}
     >
-      <TopNav
-        items={[
-          { label: `Заказы · ${orders.length}`, active: tab === "orders", onClick: () => setTab("orders") },
-          { label: `Клиенты · ${clients.length}`, active: tab === "clients", onClick: () => setTab("clients") },
-          { label: newLeads ? `Заявки · ${newLeads} нов.` : "Заявки", active: tab === "leads", onClick: () => setTab("leads") },
-          { label: "Номенклатура", active: tab === "nomenclature", onClick: () => setTab("nomenclature") },
-          { label: "Типы цен", active: tab === "prices", onClick: () => setTab("prices") },
-          ...(user?.role === "admin" ? [{ label: "Сотрудники", active: tab === "staff", onClick: () => setTab("staff") }] : []),
-          { label: "Прайс ↓", onClick: () => downloadPriceList(products) },
+      <ManagerHeader
+        roleLabel={user?.role === "admin" ? "Администратор" : "Менеджер"}
+        login={user?.login ?? ""}
+        lastSync={lastSync}
+        onSync={() => {
+          load();
+          reloadCatalog();
+        }}
+        onLogout={async () => {
+          await logout();
+          navigate("/");
+        }}
+        tabs={[
+          { key: "orders", label: "Заказы", icon: "ClipboardList", count: orders.length, active: tab === "orders", onClick: () => setTab("orders") },
+          { key: "clients", label: "Клиенты", icon: "Users", count: clients.length, active: tab === "clients", onClick: () => setTab("clients") },
+          { key: "leads", label: "Заявки", icon: "Inbox", count: newLeads || undefined, highlight: true, active: tab === "leads", onClick: () => setTab("leads") },
+          { key: "nomenclature", label: "Номенклатура", icon: "Package", active: tab === "nomenclature", onClick: () => setTab("nomenclature") },
+          { key: "prices", label: "Типы цен", icon: "Tags", active: tab === "prices", onClick: () => setTab("prices") },
+          ...(user?.role === "admin"
+            ? [{ key: "staff", label: "Сотрудники", icon: "UserCog", active: tab === "staff", onClick: () => setTab("staff") }]
+            : []),
+          { key: "pricelist", label: "Прайс", icon: "Download", onClick: () => downloadPriceList(products) },
         ]}
-        right={
-          <>
-            <span className="pill">{user?.role === "admin" ? "Администратор" : "Менеджер"} · {user?.login}</span>
-            <button
-              type="button"
-              onClick={() => {
-                load();
-                reloadCatalog();
-              }}
-              className="pill transition-colors hover:bg-accent"
-            >
-              1С · {lastSync} ↻
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                await logout();
-                navigate("/");
-              }}
-              className="pill bg-card transition-colors hover:bg-primary hover:text-primary-foreground"
-            >
-              Выйти
-            </button>
-          </>
-        }
       />
 
       {tab === "nomenclature" && <NomenclatureSection onChanged={() => reloadCatalog().catch(() => undefined)} />}
