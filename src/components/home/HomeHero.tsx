@@ -106,9 +106,8 @@ const HomeHero = () => {
 
       <div className="relative z-10 flex flex-1 items-center justify-center px-6 py-16 text-center">
         <div className="max-w-5xl animate-fade-in">
-          <span className="font-head text-xl font-semibold uppercase tracking-[0.2em] text-white/80 md:text-3xl">ООО</span>
-          <h1 className="mt-2 font-head text-[64px] font-extrabold uppercase leading-[0.95] tracking-[-0.02em] text-white drop-shadow-[0_6px_40px_rgba(0,0,0,0.5)] sm:text-[110px] lg:text-[160px]">
-            Стар<span className="bg-gradient-to-r from-ice via-white to-ice bg-clip-text text-transparent">Люкс</span>
+          <h1 className="font-head text-[45px] font-extrabold uppercase leading-[0.95] tracking-[-0.02em] text-white drop-shadow-[0_6px_40px_rgba(0,0,0,0.5)] sm:text-[77px] lg:text-[112px]">
+            ООО Стар<span className="bg-gradient-to-r from-ice via-white to-ice bg-clip-text text-transparent">Люкс</span>
           </h1>
           <div className="mx-auto mt-8 h-px w-24 bg-gradient-to-r from-transparent via-ice to-transparent" />
           <p className="mt-8 font-head text-xl font-medium text-white/90 drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)] md:text-3xl">
