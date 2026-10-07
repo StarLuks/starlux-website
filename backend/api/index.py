@@ -321,7 +321,9 @@ def handler(event: dict, context) -> dict:
         if action == 'price_list':
             from pricelist import build_price_list
             stamp = datetime.now().strftime('%d.%m.%Y')
-            return resp(200, {'file': build_price_list(cur, client_price_type(cur, user), user.get('company')),
+            main = params.get('main') == '1'
+            return resp(200, {'file': build_price_list(cur, None if main else client_price_type(cur, user),
+                                                       None if main else user.get('company')),
                               'name': f'Прайс_СтарЛюкс_{stamp}.xlsx'})
 
         if action == 'my_addresses':

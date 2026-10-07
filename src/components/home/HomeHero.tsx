@@ -3,7 +3,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import LoginDialog from "@/components/auth/LoginDialog";
 import Icon from "@/components/ui/icon";
 import { isStaff, usePortal } from "@/store/portal";
-import { downloadPriceList } from "@/data/catalog";
+import { api } from "@/lib/api";
+import { downloadBase64 } from "@/lib/nomenclature";
 import { toast } from "@/hooks/use-toast";
 
 const HERO_IMG = "https://cdn.poehali.dev/projects/00ffe408-2a47-4771-a509-db88cbfc9021/files/8058a748-2660-47a6-a335-bf01c6a8a557.jpg";
@@ -21,7 +22,8 @@ const Logo = () => (
 
 const HomeHero = () => {
   const navigate = useNavigate();
-  const { user, products } = usePortal();
+  const { user } = usePortal();
+  const [priceBusy, setPriceBusy] = useState(false);
   const [menu, setMenu] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const location = useLocation();
@@ -38,9 +40,18 @@ const HomeHero = () => {
     else setLoginOpen(true);
   };
 
-  const price = () => {
-    if (user && products.length) {
-      downloadPriceList(products);
+  const price = async () => {
+    if (user) {
+      if (priceBusy) return;
+      setPriceBusy(true);
+      try {
+        const d = await api<{ file: string; name: string }>("price_list&main=1");
+        downloadBase64(d.file, d.name, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      } catch (e) {
+        toast({ title: "Не удалось скачать прайс", description: (e as Error).message });
+      } finally {
+        setPriceBusy(false);
+      }
       return;
     }
     toast({ title: "Прайс-лист доступен клиентам", description: "Войдите в кабинет, чтобы скачать актуальные цены и остатки." });
@@ -52,7 +63,7 @@ const HomeHero = () => {
   const links = [
     { label: "О компании", onClick: () => scrollTo("about") },
     { label: "Контакты", onClick: () => scrollTo("contacts") },
-    { label: "Скачать прайс-лист", onClick: price, icon: "Download" },
+    { label: priceBusy ? "Формирую прайс…" : "Скачать прайс-лист", onClick: price, icon: priceBusy ? "Loader2" : "Download" },
   ];
 
   return (

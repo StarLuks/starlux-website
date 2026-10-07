@@ -55,7 +55,7 @@ def build_price_list(cur, price_type_id, company):
 
     ws['A1'] = 'Прайс-лист СтарЛюкс'
     ws['A1'].font = Font(bold=True, size=14, color=blue)
-    ws['A2'] = f"{company or ''} · на {datetime.now().strftime('%d.%m.%Y')}"
+    ws['A2'] = f"{company + ' · ' if company else ''}на {datetime.now().strftime('%d.%m.%Y')}"
     ws['A2'].font = Font(color='6B7280')
 
     header = ['Фото', 'Наименование', 'Артикул', 'Производитель', 'Ед. изм.', 'Фасовка',
