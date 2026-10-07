@@ -50,6 +50,7 @@ export interface Order {
   status: OrderStatus;
   comment?: string;
   address?: string | null;
+  priceTypeName?: string | null;
 }
 
 export const isStaff = (u: User | null) => !!u && (u.role === "manager" || u.role === "admin");

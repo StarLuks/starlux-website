@@ -118,8 +118,10 @@ def load_orders(cur, client_id=None, only_new=False):
     q(cur, "SELECT o.id, o.number, o.client_id AS \"clientId\", u.company AS \"clientName\", u.inn AS \"clientInn\", "
            "u.ext_id AS \"clientExtId\", o.status, o.total, o.comment, o.exported_1c AS \"exported\", "
            "o.address_name AS \"address\", a.code_1c AS \"addressCode1c\", "
+           "o.price_type_name AS \"priceTypeName\", COALESCE(t.code_1c, '') AS \"priceTypeCode1c\", "
            "o.created_at AS date FROM {S}.orders o JOIN {S}.users u ON u.id = o.client_id "
            "LEFT JOIN {S}.delivery_addresses a ON a.id = o.address_id "
+           "LEFT JOIN {S}.price_types t ON t.id = o.price_type_id "
            + w + " ORDER BY o.created_at DESC LIMIT 500", tuple(args))
     orders = cur.fetchall()
     if not orders:
@@ -360,6 +362,9 @@ def handler(event: dict, context) -> dict:
                    "LEFT JOIN {S}.product_prices pp ON pp.product_id = p.id AND pp.price_type_id = %s "
                    "WHERE p.active AND p.id IN %s", (client_price_type(cur, user) or 0, tuple(wanted)))
             rows = cur.fetchall()
+            q(cur, "SELECT id, name FROM {S}.price_types WHERE id = %s OR is_main ORDER BY (id = %s) DESC LIMIT 1",
+              (client_price_type(cur, user) or 0, client_price_type(cur, user) or 0))
+            pt = cur.fetchone() or {'id': None, 'name': None}
             if not rows:
                 return resp(400, {'error': 'Товары не найдены'})
             over = [f"{p['name']} — доступно {p['stock']} {p['unit']}" for p in rows if wanted[p['id']] > p['stock']]
@@ -371,9 +376,9 @@ def handler(event: dict, context) -> dict:
                 lines.append((p['id'], p['name'], wanted[p['id']], bp, bp * wanted[p['id']]))
             total = sum(l[4] for l in lines)
             comment = (body.get('comment') or '').strip()[:1000] or None
-            q(cur, "INSERT INTO {S}.orders (number, client_id, total, comment, address_id, address_name) "
-                   "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
-              ('tmp-' + secrets.token_hex(6), user['id'], total, comment, addr_id, addrs.get(addr_id)))
+            q(cur, "INSERT INTO {S}.orders (number, client_id, total, comment, address_id, address_name, price_type_id, price_type_name) "
+                   "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+              ('tmp-' + secrets.token_hex(6), user['id'], total, comment, addr_id, addrs.get(addr_id), pt['id'], pt['name']))
             oid = cur.fetchone()['id']
             number = 'СЛ-' + str(2000 + oid)
             q(cur, "UPDATE {S}.orders SET number = %s WHERE id = %s", (number, oid))

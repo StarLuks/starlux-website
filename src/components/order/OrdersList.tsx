@@ -139,10 +139,20 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                   })}
                 </div>
                 )}
-                {o.address && (
-                  <p className="mt-3 flex items-center gap-1.5 text-[0.8em]">
-                    <Icon name="MapPin" size={14} className="text-primary" /> {o.address}
-                  </p>
+                {(o.address || o.priceTypeName) && (
+                  <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[0.8em]">
+                    {o.priceTypeName && (
+                      <span className="flex items-center gap-1.5">
+                        <Icon name="BadgePercent" size={14} className="text-primary" />
+                        <span className="text-muted-foreground">Тип цен:</span> <b className="font-medium">{o.priceTypeName}</b>
+                      </span>
+                    )}
+                    {o.address && (
+                      <span className="flex items-center gap-1.5">
+                        <Icon name="MapPin" size={14} className="text-primary" /> {o.address}
+                      </span>
+                    )}
+                  </div>
                 )}
                 {o.comment && <p className="mt-3 text-[0.8em] text-muted-foreground">Комментарий: {o.comment}</p>}
                 {actions && <div className="mt-4 flex flex-wrap gap-2">{actions(o)}</div>}
