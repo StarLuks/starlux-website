@@ -1,142 +1,169 @@
-import { useNavigate } from "react-router-dom";
-import TopNav from "@/components/layout/TopNav";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { isStaff, usePortal } from "@/store/portal";
-import { cn } from "@/lib/utils";
+import { downloadPriceList } from "@/data/catalog";
+import { toast } from "@/hooks/use-toast";
 
-const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+const HERO_IMG = "https://cdn.poehali.dev/projects/00ffe408-2a47-4771-a509-db88cbfc9021/files/8058a748-2660-47a6-a335-bf01c6a8a557.jpg";
 
-const categories = [
-  { icon: "Beef", title: "Мясные полуфабрикаты", note: "пельмени, котлеты, фарш", cls: "bg-card" },
-  { icon: "Drumstick", title: "Курица", note: "тушки, филе, окорочка", cls: "bg-accent text-accent-foreground" },
-  { icon: "CakeSlice", title: "Торты", note: "классика и десерты", cls: "bg-card" },
-  { icon: "Milk", title: "Сыры", note: "твёрдые и полутвёрдые", cls: "bg-primary text-primary-foreground" },
-];
+type Modal = "about" | "contacts" | null;
 
-const perks = [
-  { icon: "ShieldCheck", t: "Сертифицированная продукция", d: "Документы на каждую партию" },
-  { icon: "Snowflake", t: "Холод без разрывов", d: "−18 °C от склада до вашей двери" },
-  { icon: "BadgePercent", t: "Цены от производителя", d: "Скидки на объём для постоянных клиентов" },
-];
+const Logo = () => (
+  <Link to="/" className="flex items-center gap-2.5">
+    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-ice to-primary text-white shadow-lg shadow-primary/30">
+      <Icon name="Snowflake" size={20} />
+    </span>
+    <span className="font-head text-lg font-extrabold uppercase leading-none tracking-[0.08em] text-white">
+      Стар<span className="text-ice">Люкс</span>
+    </span>
+  </Link>
+);
 
 const HomeHero = () => {
   const navigate = useNavigate();
-  const { user } = usePortal();
+  const { user, products } = usePortal();
+  const [modal, setModal] = useState<Modal>(null);
+  const [menu, setMenu] = useState(false);
   const cabinetHref = user ? (isStaff(user) ? "/manager" : "/cabinet") : "/login";
 
+  const price = () => {
+    if (user && products.length) {
+      downloadPriceList(products);
+      return;
+    }
+    toast({ title: "Прайс-лист доступен клиентам", description: "Войдите в кабинет, чтобы скачать актуальные цены и остатки." });
+    navigate("/login");
+  };
+
+  const links = [
+    { label: "О компании", onClick: () => setModal("about") },
+    { label: "Контакты", onClick: () => setModal("contacts") },
+    { label: "Скачать прайс-лист", onClick: price, icon: "Download" },
+  ];
+
   return (
-    <div className="flex min-h-screen flex-col gap-5 px-4 pb-6 pt-5 md:px-6">
-      <TopNav
-        items={[
-          { label: "О компании", onClick: () => scrollTo("about") },
-          { label: "Контакты", onClick: () => scrollTo("contacts") },
-        ]}
-        right={
-          <button
-            type="button"
-            onClick={() => navigate(cabinetHref)}
-            className="pill bg-primary text-primary-foreground transition-opacity hover:opacity-85"
-          >
-            {user ? `${user.company} →` : "Войти в кабинет →"}
-          </button>
-        }
-      />
+    <section className="relative flex min-h-screen flex-col overflow-hidden bg-[#0b1b33]">
+      <img src={HERO_IMG} alt="Разгрузка продукции СтарЛюкс на складе" className="absolute inset-0 h-full w-full animate-hero-zoom object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0b1b33]/80 via-[#0b1b33]/45 to-[#0b1b33]/85" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_center,rgba(11,27,51,0.55),transparent_75%)]" />
 
-      <section className="grid flex-1 grid-cols-1 gap-5 lg:grid-cols-[1.6fr_1fr]">
-        <div className="tile relative flex animate-fade-in flex-col justify-between overflow-hidden p-7 md:p-10">
-          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent/70 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-32 right-1/4 h-72 w-72 rounded-full bg-ocean/20 blur-3xl" />
-
-          <div className="relative flex flex-wrap items-center gap-2">
-            <span className="pill">Оптовые поставки замороженной продукции</span>
-            <span className="pill flex items-center gap-1.5">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-success" /> Принимаем заказы
-            </span>
+      <header className="relative z-20 px-4 pt-5 md:px-8">
+        <nav className="flex items-center justify-between gap-4 rounded-full border border-white/15 bg-white/10 py-2 pl-3 pr-2 backdrop-blur-xl">
+          <Logo />
+          <div className="hidden items-center gap-1 md:flex">
+            {links.map((l) => (
+              <button
+                key={l.label}
+                type="button"
+                onClick={l.onClick}
+                className="flex items-center gap-2 rounded-full px-5 py-2.5 font-head text-sm font-medium text-white/85 transition-colors hover:bg-white/15 hover:text-white"
+              >
+                {l.icon && <Icon name={l.icon} size={16} />}
+                {l.label}
+              </button>
+            ))}
           </div>
-
-          <div className="relative mt-10">
-            <span className="font-mono text-[0.8em] uppercase tracking-[0.25em] text-muted-foreground">ООО</span>
-            <h1 className="font-head text-[56px] font-semibold leading-[0.9] tracking-[-0.04em] sm:text-[88px] xl:text-[120px]">
-              СТАР<span className="text-ocean">ЛЮКС</span>
-            </h1>
-            <p className="mt-6 max-w-xl font-head text-2xl font-light leading-snug md:text-[32px]">
-              Качество, которое видно.
-              <br />
-              Цены, которые <mark className="rounded-[6px] bg-accent px-2 text-accent-foreground">радуют</mark>.
-            </p>
-          </div>
-
-          <div className="relative mt-10 flex flex-wrap gap-3">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => navigate(cabinetHref)}
-              className="group flex items-center gap-2 rounded-full bg-foreground px-7 py-4 font-head text-card transition-transform hover:-translate-y-0.5"
+              className="flex items-center gap-2 rounded-full bg-white px-5 py-2.5 font-head text-sm font-semibold text-primary shadow-lg transition-transform hover:-translate-y-0.5"
             >
-              Сделать заказ
-              <Icon name="ArrowRight" size={18} className="transition-transform group-hover:translate-x-1" />
+              <Icon name="LogIn" size={16} />
+              {user ? "Мой кабинет" : "Войти в кабинет"}
             </button>
             <button
               type="button"
-              onClick={() => scrollTo("contacts")}
-              className="rounded-full bg-pill px-7 py-4 font-head transition-colors hover:bg-accent"
+              aria-label="Меню"
+              onClick={() => setMenu((v) => !v)}
+              className="grid h-10 w-10 place-items-center rounded-full bg-white/15 text-white md:hidden"
             >
-              Стать клиентом
+              <Icon name={menu ? "X" : "Menu"} size={18} />
             </button>
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-5">
-          {categories.map((c, i) => (
-            <div
-              key={c.title}
-              style={{ animationDelay: `${120 + i * 80}ms` }}
-              className={cn(
-                "group flex min-h-[150px] animate-fade-in flex-col justify-between rounded-[18px] p-5 transition-transform hover:-translate-y-1",
-                c.cls
-              )}
-            >
-              <span className="grid h-11 w-11 place-items-center rounded-full bg-background/40 transition-transform group-hover:rotate-12">
-                <Icon name={c.icon} fallback="Package" size={20} />
-              </span>
-              <div>
-                <h3 className="font-head text-lg font-medium leading-tight md:text-xl">{c.title}</h3>
-                <p className="mt-1 text-[0.75em] opacity-70">{c.note}</p>
-              </div>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => navigate(cabinetHref)}
-            style={{ animationDelay: "440ms" }}
-            className="group col-span-2 flex animate-fade-in items-center justify-between rounded-[18px] bg-ocean px-6 py-5 text-left font-head text-ocean-foreground transition-transform hover:-translate-y-0.5"
-          >
-            <span>
-              <span className="block text-[0.8em] opacity-80">Актуальный прайс-лист</span>
-              <span className="text-xl">Цены и остатки онлайн</span>
-            </span>
-            <Icon name="ArrowUpRight" size={24} className="transition-transform group-hover:rotate-45" />
-          </button>
-        </div>
-      </section>
-
-      <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
-        {perks.map((p, i) => (
-          <div
-            key={p.t}
-            style={{ animationDelay: `${500 + i * 80}ms` }}
-            className="tile flex animate-fade-in items-center gap-4 p-5"
-          >
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-accent text-accent-foreground">
-              <Icon name={p.icon} size={20} />
-            </span>
-            <div>
-              <h3 className="font-head font-medium">{p.t}</h3>
-              <p className="text-[0.78em] text-muted-foreground">{p.d}</p>
-            </div>
+        </nav>
+        {menu && (
+          <div className="mt-2 animate-scale-in space-y-1 rounded-3xl border border-white/15 bg-[#0b1b33]/90 p-2 backdrop-blur-xl md:hidden">
+            {links.map((l) => (
+              <button
+                key={l.label}
+                type="button"
+                onClick={() => {
+                  setMenu(false);
+                  l.onClick();
+                }}
+                className="flex w-full items-center gap-2 rounded-full px-5 py-3 text-left font-head text-white hover:bg-white/10"
+              >
+                {l.icon && <Icon name={l.icon} size={16} />}
+                {l.label}
+              </button>
+            ))}
           </div>
-        ))}
-      </section>
-    </div>
+        )}
+      </header>
+
+      <div className="relative z-10 flex flex-1 items-center justify-center px-6 py-16 text-center">
+        <div className="max-w-5xl animate-fade-in">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-1.5 font-head text-xs font-semibold uppercase tracking-[0.25em] text-white/85 backdrop-blur">
+            <Icon name="Snowflake" size={14} className="text-ice" />
+            ООО «СтарЛюкс»
+          </span>
+          <h1 className="mt-8 font-head text-[44px] font-extrabold leading-[1] tracking-[-0.03em] text-white drop-shadow-[0_6px_40px_rgba(0,0,0,0.5)] sm:text-[68px] lg:text-[92px]">
+            Качество без компромиссов.
+            <br />
+            <span className="bg-gradient-to-r from-ice via-white to-ice bg-clip-text text-transparent">Цены без наценок.</span>
+          </h1>
+        </div>
+      </div>
+
+      <Dialog open={modal !== null} onOpenChange={(v) => !v && setModal(null)}>
+        <DialogContent className="max-w-lg rounded-[24px] border-0 bg-card">
+          {modal === "about" ? (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-head text-2xl font-bold">О компании</DialogTitle>
+                <DialogDescription>ООО «СтарЛюкс» — оптовая торговля замороженной продукцией.</DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { i: "Beef", t: "Мясные полуфабрикаты" },
+                  { i: "Drumstick", t: "Курица" },
+                  { i: "CakeSlice", t: "Торты" },
+                  { i: "Milk", t: "Сыры" },
+                ].map((c) => (
+                  <div key={c.t} className="flex items-center gap-3 rounded-2xl bg-pill p-3 font-head text-sm font-semibold">
+                    <Icon name={c.i} fallback="Package" size={18} className="text-primary" /> {c.t}
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Работаем с магазинами, кафе и ресторанами по договору. Заказы принимаем через личный кабинет — сразу передаём в учётную систему и отгружаем с соблюдением холодовой цепи.
+              </p>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-head text-2xl font-bold">Контакты</DialogTitle>
+                <DialogDescription>Станьте клиентом — менеджер заключит договор и выдаст доступ в кабинет.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2">
+                <a href="tel:+74950000000" className="flex items-center gap-3 rounded-2xl bg-pill p-4 font-head font-semibold hover:bg-accent">
+                  <Icon name="Phone" size={18} className="text-primary" /> +7 (495) 000-00-00
+                </a>
+                <a href="mailto:zakaz@starlux.ru" className="flex items-center gap-3 rounded-2xl bg-pill p-4 font-head font-semibold hover:bg-accent">
+                  <Icon name="Mail" size={18} className="text-primary" /> zakaz@starlux.ru
+                </a>
+                <div className="flex items-center gap-3 rounded-2xl bg-pill p-4 text-sm">
+                  <Icon name="MapPin" size={18} className="shrink-0 text-primary" /> Москва, склад-холодильник, пн–сб 7:00–20:00
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </section>
   );
 };
 
