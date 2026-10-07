@@ -85,7 +85,15 @@ def touch_sync(cur):
 def products(cur):
     q(cur, "SELECT id, name, category, pack, pack_kg AS \"packKg\", price, stock, unit FROM {S}.products "
            "WHERE active ORDER BY sort, name")
-    return cur.fetchall()
+    rows = cur.fetchall()
+    q(cur, "SELECT i.product_id, i.url FROM {S}.product_images i JOIN {S}.products p ON p.id = i.product_id "
+           "WHERE p.active ORDER BY i.is_main DESC, i.sort, i.id")
+    imgs = {}
+    for i in cur.fetchall():
+        imgs.setdefault(i['product_id'], []).append(i['url'])
+    for r in rows:
+        r['images'] = imgs.get(r['id'], [])
+    return rows
 
 
 def load_orders(cur, client_id=None, only_new=False):

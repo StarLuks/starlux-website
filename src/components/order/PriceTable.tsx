@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { Product, boxPrice, rub } from "@/data/catalog";
 import QtyControl from "./QtyControl";
+import ImageLightbox from "./ImageLightbox";
+import Icon from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -13,6 +16,7 @@ interface Props {
 const COLS = "md:grid-cols-[2.4fr_1.1fr_70px_0.9fr_110px_1fr_150px]";
 
 const PriceTable = ({ label, products, qty, onQty, className }: Props) => {
+  const [viewing, setViewing] = useState<Product | null>(null);
   return (
     <section className={cn("tile flex min-h-0 flex-col", className)}>
       <div className="tile-label">{label}</div>
@@ -46,7 +50,26 @@ const PriceTable = ({ label, products, qty, onQty, className }: Props) => {
                 q > 0 ? "bg-card" : "hover:bg-background/30"
               )}
             >
-              <span className="font-head text-[1.1em] md:col-auto">{p.name}</span>
+              <span className="flex min-w-0 items-center gap-3 font-head text-[1.1em] md:col-auto">
+                {p.images?.length ? (
+                  <button
+                    type="button"
+                    onClick={() => setViewing(p)}
+                    aria-label={`Фото: ${p.name}`}
+                    className="group relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-pill ring-primary/40 transition hover:ring-2"
+                  >
+                    <img src={p.images[0]} alt={p.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                    <span className="absolute inset-0 grid place-items-center bg-foreground/30 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                      <Icon name="ZoomIn" size={16} />
+                    </span>
+                  </button>
+                ) : (
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-pill text-muted-foreground/60">
+                    <Icon name="Package" size={18} />
+                  </span>
+                )}
+                <span className="min-w-0">{p.name}</span>
+              </span>
               <span className="text-muted-foreground max-md:order-3">{p.pack}</span>
               <span className="text-muted-foreground max-md:hidden">{unit}</span>
               <span className="max-md:order-2 max-md:text-right">{rub(p.price)}</span>
@@ -72,6 +95,13 @@ const PriceTable = ({ label, products, qty, onQty, className }: Props) => {
           );
         })}
       </div>
+      <ImageLightbox
+        open={!!viewing}
+        onOpenChange={(v) => !v && setViewing(null)}
+        images={viewing?.images ?? []}
+        title={viewing?.name ?? ""}
+        subtitle={viewing ? [viewing.pack, `${rub(viewing.price)} за кг`].filter(Boolean).join(" · ") : undefined}
+      />
     </section>
   );
 };
