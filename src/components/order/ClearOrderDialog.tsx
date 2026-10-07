@@ -14,17 +14,17 @@ interface Props {
 
 const ClearOrderDialog = ({ open, onOpenChange, onConfirm, count, total }: Props) => (
   <AlertDialog open={open} onOpenChange={onOpenChange}>
-    <AlertDialogContent className="max-w-sm overflow-hidden rounded-[28px] border-0 p-0 shadow-2xl">
+    <AlertDialogContent className="max-h-[92vh] w-[calc(100%-2rem)] max-w-sm gap-0 overflow-y-auto rounded-[28px] border-0 p-0 shadow-2xl">
       <div className="relative">
-        <img src={ANGRY_MANAGER} alt="Недовольный менеджер по продажам" className="h-60 w-full object-cover object-top" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/10 to-transparent" />
+        <img src={ANGRY_MANAGER} alt="Недовольный менеджер по продажам" className="h-48 w-full object-cover object-[center_20%]" />
+        <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-background to-transparent" />
         <span className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full bg-destructive px-3 py-1 text-xs font-bold text-destructive-foreground shadow-lg">
           <Icon name="TriangleAlert" size={14} /> Внимание
         </span>
       </div>
-      <div className="-mt-8 space-y-2 px-6 text-center">
-        <AlertDialogTitle className="font-head text-xl font-bold">Точно очистить заказ?</AlertDialogTitle>
-        <AlertDialogDescription className="text-sm text-muted-foreground">
+      <div className="space-y-2 px-6 pt-3 text-center">
+        <AlertDialogTitle className="font-head text-xl font-bold leading-tight">Точно очистить заказ?</AlertDialogTitle>
+        <AlertDialogDescription className="text-sm leading-relaxed text-muted-foreground">
           Ваш менеджер уже приготовил товар. Будут удалены все позиции:{" "}
           <b className="text-foreground">
             {count} поз. на {rub(total)}
