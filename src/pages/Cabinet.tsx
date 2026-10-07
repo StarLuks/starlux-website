@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import TopNav from "@/components/layout/TopNav";
+import PortalHeader from "@/components/layout/PortalHeader";
 import OrderFilters from "@/components/order/OrderFilters";
 import PriceTable from "@/components/order/PriceTable";
 import OrdersList from "@/components/order/OrdersList";
@@ -169,30 +169,24 @@ const Cabinet = () => {
 
   return (
     <main className="grid min-h-screen grid-rows-[auto_auto_1fr] gap-5 px-4 pb-6 pt-5 md:h-screen md:px-6">
-      <TopNav
-        items={[
-          { label: "Новый заказ", active: tab === "catalog", onClick: () => setTab("catalog") },
-          { label: `Мои заказы · ${orders.length}`, active: tab === "orders", onClick: () => setTab("orders") },
-          { label: priceBusy ? "Формирую прайс…" : "Прайс ↓", onClick: downloadPrice },
+      <PortalHeader
+        roleLabel="Клиент"
+        userIcon="Building2"
+        login={user.company}
+        lastSync={lastSync}
+        onSync={() => {
+          reloadCatalog();
+          loadOrders();
+        }}
+        onLogout={async () => {
+          await logout();
+          navigate("/");
+        }}
+        tabs={[
+          { key: "catalog", label: "Новый заказ", icon: "ShoppingCart", count: picked.length || undefined, highlight: true, active: tab === "catalog", onClick: () => setTab("catalog") },
+          { key: "orders", label: "Мои заказы", icon: "ClipboardList", count: orders.length, active: tab === "orders", onClick: () => setTab("orders") },
+          { key: "price", label: priceBusy ? "Формирую прайс…" : "Прайс", icon: priceBusy ? "Loader2" : "Download", onClick: downloadPrice },
         ]}
-        right={
-          <>
-            <span className="pill">{user.company}</span>
-            <button type="button" onClick={() => reloadCatalog()} className="pill transition-colors hover:bg-accent" title="Обновить прайс">
-              1С · {lastSync}
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                await logout();
-                navigate("/");
-              }}
-              className="pill bg-card transition-colors hover:bg-primary hover:text-primary-foreground"
-            >
-              Выйти
-            </button>
-          </>
-        }
       />
 
       {tab === "catalog" ? (

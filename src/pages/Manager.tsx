@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import ManagerHeader from "@/components/manager/ManagerHeader";
+import PortalHeader from "@/components/layout/PortalHeader";
 import OrdersList from "@/components/order/OrdersList";
 import NewClientDialog from "@/components/manager/NewClientDialog";
 import ClientCard from "@/components/manager/ClientCard";
@@ -137,7 +137,7 @@ const Manager = () => {
         isRef ? "grid-rows-[auto_1fr]" : "grid-rows-[auto_auto_1fr]"
       )}
     >
-      <ManagerHeader
+      <PortalHeader
         roleLabel={user?.role === "admin" ? "Администратор" : "Менеджер"}
         login={user?.login ?? ""}
         lastSync={lastSync}

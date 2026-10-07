@@ -14,6 +14,7 @@ export interface HeaderTab {
 
 interface Props {
   roleLabel: string;
+  userIcon?: string;
   login: string;
   lastSync: string;
   onSync: () => void;
@@ -21,15 +22,15 @@ interface Props {
   tabs: HeaderTab[];
 }
 
-const ManagerHeader = ({ roleLabel, login, lastSync, onSync, onLogout, tabs }: Props) => (
+const PortalHeader = ({ roleLabel, userIcon = "UserRound", login, lastSync, onSync, onLogout, tabs }: Props) => (
   <header className="space-y-3">
     <div className="flex flex-wrap items-center gap-2 text-[13px]">
       <span className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-card py-1.5 pl-1.5 pr-3.5">
         <span className="grid h-6 w-6 place-items-center rounded-full bg-primary text-primary-foreground">
-          <Icon name="UserRound" size={13} />
+          <Icon name={userIcon} size={13} />
         </span>
         <span className="text-muted-foreground">{roleLabel} ·</span>
-        <b className="font-semibold">{login}</b>
+        <b className="max-w-[60vw] truncate font-semibold">{login}</b>
       </span>
       <button
         type="button"
@@ -92,4 +93,4 @@ const ManagerHeader = ({ roleLabel, login, lastSync, onSync, onLogout, tabs }: P
   </header>
 );
 
-export default ManagerHeader;
+export default PortalHeader;
