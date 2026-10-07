@@ -282,6 +282,15 @@ def _template(cur):
     return base64.b64encode(buf.getvalue()).decode()
 
 
+TEXT_COLS = {'name': 'name', 'full_name': 'fullName', 'article': 'article', 'code_1c': 'code1c',
+             'barcode': 'barcode', 'unit': 'unit', 'manufacturer': 'manufacturer', 'dimensions': 'dimensions',
+             'pack': 'pack'}
+UPD_COLS = ['name', 'full_name', 'article', 'code_1c', 'barcode', 'unit', 'manufacturer', 'dimensions', 'pack',
+            'pack_kg', 'stock', 'active', 'group_id', 'category']
+UPD_TYPES = {**{c: 'text' for c in UPD_COLS}, 'pack_kg': 'numeric', 'stock': 'integer', 'active': 'boolean',
+             'group_id': 'integer'}
+
+
 def _import_excel(cur, file_b64):
     from openpyxl import load_workbook
     if ',' in file_b64[:100]:
@@ -319,17 +328,19 @@ def _import_excel(cur, file_b64):
         if h.startswith('цена:') and h[5:].strip() in ptypes:
             price_cols[i] = ptypes[h[5:].strip()]
 
-    _q(cur, "SELECT id, lower(name) AS name, code_1c FROM {S}.product_groups")
+    _q(cur, "SELECT id, name, code_1c FROM {S}.product_groups")
     groups = cur.fetchall()
+    gname_by_id = {g['id']: g['name'] for g in groups}
     by_gcode = {g['code_1c']: g['id'] for g in groups if g['code_1c']}
-    by_gname = {g['name']: g['id'] for g in groups}
+    by_gname = {g['name'].lower(): g['id'] for g in groups}
     _q(cur, "SELECT id, code_1c, article, lower(name) AS name FROM {S}.products")
     prods = cur.fetchall()
     by_code = {p['code_1c']: p['id'] for p in prods if p['code_1c']}
     by_art = {p['article']: p['id'] for p in prods if p['article']}
     by_name = {p['name']: p['id'] for p in prods}
+    existing = {p['id'] for p in prods}
 
-    created = updated = 0
+    new_rows, upd_rows, price_map = {}, {}, {}
     errors = []
     for n, r in enumerate(rows[1:], start=2):
         def v(k):
@@ -339,7 +350,8 @@ def _import_excel(cur, file_b64):
             x = r[i]
             if isinstance(x, float) and x.is_integer() and k in ('code1c', 'article', 'barcode', 'groupCode'):
                 x = int(x)
-            return str(x).strip()
+            x = str(x).strip()
+            return x if x != '' else None
 
         name = v('name')
         if not name:
@@ -349,41 +361,92 @@ def _import_excel(cur, file_b64):
         gname, gcode = v('group'), v('groupCode')
         gid = (by_gcode.get(gcode) if gcode else None) or (by_gname.get(gname.lower()) if gname else None)
         if not gid and (gname or gcode):
+            title = gname or f"Группа {gcode}"
             _q(cur, "INSERT INTO {S}.product_groups (name, code_1c, sort) VALUES (%s, %s, "
                     "(SELECT COALESCE(MAX(sort), 0) + 1 FROM {S}.product_groups)) RETURNING id",
-               (gname or f"Группа {gcode}", gcode or ''))
+               (title, gcode or ''))
             gid = cur.fetchone()['id']
+            gname_by_id[gid] = title
             if gcode:
                 by_gcode[gcode] = gid
-            by_gname[(gname or f"Группа {gcode}").lower()] = gid
+            by_gname[title.lower()] = gid
         code, art = v('code1c'), v('article')
         pid = (by_code.get(code) if code else None) or (by_art.get(art) if art else None) or by_name.get(name.lower())
         if not pid and not gid:
             errors.append(f"Строка {n} ({name}): не указана группа для нового товара")
             continue
-        data = {k: v(k) for k in ('name', 'fullName', 'article', 'code1c', 'barcode', 'unit', 'manufacturer',
-                                  'dimensions', 'pack', 'weight', 'stock') if idx[k] is not None and v(k) is not None}
-        if not pid and 'fullName' not in data:
-            data['fullName'] = name
-        if idx['active'] is not None and v('active') is not None:
-            data['active'] = v('active').lower() not in ('нет', 'no', '0', 'false', 'ложь', '-')
-        new_id = _upsert_product(cur, pid, data, gid)
+
+        rec = {c: v(k) for c, k in TEXT_COLS.items()}
+        weight, stock = v('weight'), v('stock')
+        rec['pack_kg'] = _num(weight) if weight is not None else None
+        if weight is not None and rec['pack_kg'] is None:
+            errors.append(f"Строка {n} ({name}): некорректная масса «{weight}»")
+        st = _num(stock) if stock is not None else None
+        if stock is not None and st is None:
+            errors.append(f"Строка {n} ({name}): некорректный остаток «{stock}»")
+        rec['stock'] = int(st) if st is not None else None
+        act = v('active')
+        rec['active'] = None if act is None else act.lower() not in ('нет', 'no', '0', 'false', 'ложь', '-')
+        rec['group_id'] = gid
+        rec['category'] = gname_by_id.get(gid) if gid else None
+
+        if not pid:
+            pid = 'n' + secrets.token_hex(5)
+        target = upd_rows if pid in existing else new_rows
+        prev = target.get(pid)
+        target[pid] = {**prev, **{k: x for k, x in rec.items() if x is not None}} if prev else rec
         if code:
-            by_code[code] = new_id
+            by_code[code] = pid
         if art:
-            by_art[art] = new_id
-        by_name[name.lower()] = new_id
-        prices = {}
+            by_art[art] = pid
+        by_name[name.lower()] = pid
+
         for i, tid in price_cols.items():
             if i < len(r) and r[i] not in (None, ''):
-                if _num(r[i]) is None:
+                val = _num(r[i])
+                if val is None:
                     errors.append(f"Строка {n} ({name}): некорректная цена «{r[i]}»")
                 else:
-                    prices[str(tid)] = r[i]
-        if prices:
-            _save_prices(cur, new_id, prices)
-        if pid:
-            updated += 1
-        else:
-            created += 1
+                    price_map[(pid, tid)] = round(val, 2)
+
+    from psycopg2.extras import execute_values
+    schema = os.environ.get('MAIN_DB_SCHEMA', 't_p16770056_starlux_website')
+
+    if new_rows:
+        _q(cur, "SELECT COALESCE(MAX(sort), 0) AS s FROM {S}.products")
+        sort = cur.fetchone()['s']
+        data = []
+        for pid, rec in new_rows.items():
+            sort += 1
+            data.append((
+                pid, rec['name'], rec.get('full_name') or rec['name'], rec.get('article') or '',
+                rec.get('code_1c') or '', rec.get('barcode') or '', rec.get('unit') or 'кор.',
+                rec.get('manufacturer') or '', rec.get('dimensions') or '', rec.get('pack') or '',
+                rec['pack_kg'] if rec.get('pack_kg') is not None else Decimal(1),
+                rec['stock'] if rec.get('stock') is not None else 0,
+                rec['active'] if rec.get('active') is not None else True,
+                rec.get('group_id'), rec.get('category') or 'Прочее', sort,
+            ))
+        execute_values(cur, f"INSERT INTO {schema}.products (id, name, full_name, article, code_1c, barcode, unit, "
+                            f"manufacturer, dimensions, pack, pack_kg, stock, active, group_id, category, sort) VALUES %s",
+                       data, page_size=500)
+
+    if upd_rows:
+        data = [(pid, *(rec.get(c) for c in UPD_COLS)) for pid, rec in upd_rows.items()]
+        sets = ', '.join(f"{c} = COALESCE(v.{c}, p.{c})" for c in UPD_COLS)
+        tpl = '(%s, ' + ', '.join(f"%s::{UPD_TYPES[c]}" for c in UPD_COLS) + ')'
+        execute_values(cur, f"UPDATE {schema}.products p SET {sets}, updated_at = NOW() "
+                            f"FROM (VALUES %s) AS v (id, {', '.join(UPD_COLS)}) WHERE p.id = v.id",
+                       data, template=tpl, page_size=500)
+
+    if price_map:
+        execute_values(cur, f"INSERT INTO {schema}.product_prices (product_id, price_type_id, price) VALUES %s "
+                            f"ON CONFLICT (product_id, price_type_id) DO UPDATE SET price = EXCLUDED.price, updated_at = NOW()",
+                       [(pid, tid, val) for (pid, tid), val in price_map.items()], page_size=500)
+        ids = list({pid for pid, _ in price_map})
+        _q(cur, "UPDATE {S}.products p SET price = pp.price, updated_at = NOW() FROM {S}.product_prices pp "
+                "JOIN {S}.price_types t ON t.id = pp.price_type_id AND t.is_main "
+                "WHERE pp.product_id = p.id AND p.id = ANY(%s)", (ids,))
+
+    created, updated = len(new_rows), len(upd_rows)
     return 200, {'ok': True, 'created': created, 'updated': updated, 'errors': errors[:50]}
