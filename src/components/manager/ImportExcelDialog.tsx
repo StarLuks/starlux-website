@@ -31,6 +31,7 @@ const ImportExcelDialog = ({ open, onOpenChange, onImported }: Props) => {
   const [drag, setDrag] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
+  const [creatingTypes, setCreatingTypes] = useState(false);
   const [view, setView] = useState<"all" | "create" | "update">("all");
   const ref = useRef<HTMLInputElement>(null);
 
@@ -59,6 +60,26 @@ const ImportExcelDialog = ({ open, onOpenChange, onImported }: Props) => {
     setPreview(null);
     setFile(f);
     check(f);
+  };
+
+  const createPriceTypes = async () => {
+    if (!preview || !file) return;
+    setCreatingTypes(true);
+    try {
+      for (const col of preview.unknownPrices) {
+        const name = col.replace(/^цена:\s*/i, "").trim();
+        if (name) await api("price_type_save", { name, code1c: "", active: true });
+      }
+      toast({
+        title: preview.unknownPrices.length > 1 ? "Типы цен созданы" : "Тип цен создан",
+        description: preview.unknownPrices.map((c) => c.replace(/^цена:\s*/i, "")).join(", "),
+      });
+      await check(file);
+    } catch (e) {
+      toast({ title: "Не удалось создать тип цен", description: (e as Error).message });
+    } finally {
+      setCreatingTypes(false);
+    }
   };
 
   const check = async (f: File) => {
@@ -178,10 +199,24 @@ const ImportExcelDialog = ({ open, onOpenChange, onImported }: Props) => {
                 </p>
               )}
               {preview.unknownPrices.length > 0 && (
-                <p className="flex items-start gap-1.5 text-amber-700">
-                  <Icon name="TriangleAlert" size={14} className="mt-px shrink-0" />
-                  Не загрузятся — нет такого типа цен: {preview.unknownPrices.join(", ")}. Создайте его в «Типах цен» и проверьте файл снова.
-                </p>
+                <div className="flex flex-col gap-2 rounded-xl bg-amber-500/10 p-2.5 text-amber-800 sm:flex-row sm:items-center">
+                  <p className="flex flex-1 items-start gap-1.5">
+                    <Icon name="TriangleAlert" size={14} className="mt-px shrink-0" />
+                    <span>
+                      Нет типа цен:{" "}
+                      <b>{preview.unknownPrices.map((c) => c.replace(/^цена:\s*/i, "")).join(", ")}</b> — эти цены не загрузятся.
+                    </span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={createPriceTypes}
+                    disabled={creatingTypes || busy}
+                    className="flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-700 disabled:opacity-60"
+                  >
+                    <Icon name={creatingTypes ? "Loader2" : "Plus"} size={13} className={creatingTypes ? "animate-spin" : ""} />
+                    {preview.unknownPrices.length > 1 ? "Создать типы цен" : "Создать тип цен"}
+                  </button>
+                </div>
               )}
               {preview.ignoredCols.length > 0 && (
                 <p className="flex items-start gap-1.5">
