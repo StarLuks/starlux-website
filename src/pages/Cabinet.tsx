@@ -117,9 +117,12 @@ const Cabinet = () => {
   const shown = useMemo(() => {
     const s = search.trim().toLowerCase();
     if (s) return products.filter((p) => p.name.toLowerCase().includes(s));
-    if (activeCat === ALL) return products;
+    if (activeCat === ALL) {
+      const order = new Map(categories.map((c, i) => [c, i]));
+      return [...products].sort((a, b) => (order.get(a.category) ?? 0) - (order.get(b.category) ?? 0));
+    }
     return products.filter((p) => p.category === activeCat);
-  }, [products, activeCat, search]);
+  }, [products, activeCat, search, categories]);
 
   if (!ready) return <div className="grid min-h-screen place-items-center text-muted-foreground">Загрузка…</div>;
   if (!user || user.role !== "client") return <Navigate to="/" replace state={{ login: true }} />;
@@ -225,6 +228,7 @@ const Cabinet = () => {
             className="max-md:max-h-[70vh]"
             label={search ? `Поиск · «${search}».` : `Прайс-лист · ${activeCat === ALL ? "все группы" : activeCat}.`}
             products={shown}
+            grouped={!search.trim() && activeCat === ALL}
             qty={qty}
             onQty={(id, v) => setQty((q) => ({ ...q, [id]: v }))}
           />

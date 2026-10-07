@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Product, boxPrice, rub } from "@/data/catalog";
 import QtyControl from "./QtyControl";
 import ImageLightbox from "./ImageLightbox";
@@ -11,11 +11,12 @@ interface Props {
   qty: Record<string, number>;
   onQty: (id: string, v: number) => void;
   className?: string;
+  grouped?: boolean;
 }
 
 const COLS = "md:grid-cols-[2.4fr_1.1fr_70px_0.9fr_110px_1fr_150px]";
 
-const PriceTable = ({ label, products, qty, onQty, className }: Props) => {
+const PriceTable = ({ label, products, qty, onQty, className, grouped }: Props) => {
   const [viewing, setViewing] = useState<Product | null>(null);
   return (
     <section className={cn("tile flex min-h-0 flex-col", className)}>
@@ -35,15 +36,30 @@ const PriceTable = ({ label, products, qty, onQty, className }: Props) => {
             Ничего не найдено
           </div>
         )}
-        {products.map((p) => {
+        {products.map((p, i) => {
+          const groupHead = grouped && (i === 0 || products[i - 1].category !== p.category);
+          const inGroup = groupHead ? products.filter((x) => x.category === p.category) : [];
+          const groupPicked = inGroup.filter((x) => (qty[x.id] ?? 0) > 0).length;
           const q = qty[p.id] ?? 0;
           const sum = q * boxPrice(p);
           const unit = p.unit || "кор.";
           const out = p.stock <= 0;
           const atMax = q > 0 && q >= p.stock;
           return (
+            <Fragment key={p.id}>
+            {groupHead && (
+              <div className="sticky top-0 z-10 flex items-center gap-2 border-t border-border bg-accent/90 px-4 py-2 font-head text-[0.85em] font-semibold text-accent-foreground backdrop-blur md:px-[22px]">
+                <Icon name="FolderOpen" size={15} className="text-primary" />
+                <span>{p.category || "Прочее"}</span>
+                <span className="font-normal text-muted-foreground">· {inGroup.length}</span>
+                {groupPicked > 0 && (
+                  <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-[0.8em] font-medium text-primary-foreground">
+                    в заказе {groupPicked}
+                  </span>
+                )}
+              </div>
+            )}
             <div
-              key={p.id}
               className={cn(
                 "grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 border-t border-border px-4 py-3 text-[0.85em] transition-colors md:min-h-12 md:gap-y-0 md:px-[22px] md:py-1.5",
                 COLS,
@@ -92,6 +108,7 @@ const PriceTable = ({ label, products, qty, onQty, className }: Props) => {
                 {atMax && <span className="mt-0.5 block text-center text-[0.7em] text-amber-700">весь остаток</span>}
               </div>
             </div>
+            </Fragment>
           );
         })}
       </div>
