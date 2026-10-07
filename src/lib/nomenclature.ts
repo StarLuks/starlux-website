@@ -35,6 +35,7 @@ export interface NomProduct {
   weight: number;
   pack: string;
   stock: number;
+  description: string;
   updatedAt: string;
   images: ProductImage[];
   prices: Record<string, number>;

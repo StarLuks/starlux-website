@@ -9,15 +9,16 @@ interface Props {
   subtitle?: string;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  startIndex?: number;
 }
 
-const ImageLightbox = ({ images, title, subtitle, open, onOpenChange }: Props) => {
+const ImageLightbox = ({ images, title, subtitle, open, onOpenChange, startIndex = 0 }: Props) => {
   const [i, setI] = useState(0);
   const many = images.length > 1;
 
   useEffect(() => {
-    if (open) setI(0);
-  }, [open]);
+    if (open) setI(startIndex);
+  }, [open, startIndex]);
 
   useEffect(() => {
     if (!open || !many) return;

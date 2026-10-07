@@ -10,7 +10,7 @@ import boto3
 PRODUCT_FIELDS = {
     'name': 'name', 'fullName': 'full_name', 'article': 'article', 'code1c': 'code_1c',
     'barcode': 'barcode', 'unit': 'unit', 'manufacturer': 'manufacturer', 'dimensions': 'dimensions',
-    'pack': 'pack',
+    'pack': 'pack', 'description': 'description',
 }
 
 
@@ -57,7 +57,7 @@ def list_groups(cur):
 def list_products(cur):
     _q(cur, "SELECT p.id, p.group_id AS \"groupId\", p.active, p.name, p.full_name AS \"fullName\", p.article, "
             "p.code_1c AS \"code1c\", p.barcode, p.unit, p.manufacturer, p.dimensions, p.pack_kg AS \"weight\", "
-            "p.pack, p.stock, p.updated_at AS \"updatedAt\" FROM {S}.products p ORDER BY p.sort, p.name")
+            "p.pack, p.stock, p.description, p.updated_at AS \"updatedAt\" FROM {S}.products p ORDER BY p.sort, p.name")
     rows = cur.fetchall()
     _q(cur, "SELECT id, product_id, url, is_main AS \"isMain\" FROM {S}.product_images ORDER BY is_main DESC, sort, id")
     imgs = {}
@@ -87,6 +87,8 @@ def _save_prices(cur, pid, prices):
 
 def _upsert_product(cur, pid, data, group_id):
     vals = {col: str(data.get(key) or '').strip() for key, col in PRODUCT_FIELDS.items() if key in data}
+    if 'description' in data:
+        vals['description'] = str(data.get('description') or '').strip()[:20000]
     if 'weight' in data:
         vals['pack_kg'] = _num(data.get('weight'), Decimal(1))
     if 'active' in data:

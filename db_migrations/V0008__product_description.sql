@@ -1,0 +1,1 @@
+ALTER TABLE t_p16770056_starlux_website.products ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT '';

@@ -10,6 +10,12 @@ export interface Product {
   stock: number;
   unit?: string;
   images?: string[];
+  article?: string;
+  manufacturer?: string;
+  fullName?: string;
+  description?: string;
+  dimensions?: string;
+  barcode?: string;
 }
 
 export const categoriesOf = (products: Product[]): Category[] => Array.from(new Set(products.map((p) => p.category)));

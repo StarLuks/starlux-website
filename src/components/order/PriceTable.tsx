@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { Product, boxPrice, rub } from "@/data/catalog";
 import QtyControl from "./QtyControl";
 import ImageLightbox from "./ImageLightbox";
+import ProductInfoDialog from "./ProductInfoDialog";
 import Icon from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,7 @@ const NEXT: Record<SortDir, SortDir> = { none: "asc", asc: "desc", desc: "none" 
 
 const PriceTable = ({ label, products: source, qty, onQty, className, grouped }: Props) => {
   const [viewing, setViewing] = useState<Product | null>(null);
+  const [info, setInfo] = useState<Product | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<SortDir>(() => {
     const v = localStorage.getItem(SORT_KEY);
@@ -132,7 +134,14 @@ const PriceTable = ({ label, products: source, qty, onQty, className, grouped }:
                     <Icon name="Package" size={18} />
                   </span>
                 )}
-                <span className="min-w-0">{p.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setInfo(p)}
+                  className="min-w-0 text-left underline-offset-4 transition-colors hover:text-primary hover:underline"
+                  title="Подробнее о товаре"
+                >
+                  {p.name}
+                </button>
               </span>
               <span className="text-muted-foreground max-md:order-3">{p.pack}</span>
               <span className="text-muted-foreground max-md:hidden">{unit}</span>
@@ -161,6 +170,12 @@ const PriceTable = ({ label, products: source, qty, onQty, className, grouped }:
           );
         })}
       </div>
+      <ProductInfoDialog
+        product={info}
+        onOpenChange={(v) => !v && setInfo(null)}
+        qty={info ? qty[info.id] ?? 0 : 0}
+        onQty={(v) => info && onQty(info.id, v)}
+      />
       <ImageLightbox
         open={!!viewing}
         onOpenChange={(v) => !v && setViewing(null)}

@@ -32,6 +32,7 @@ type Form = {
   weight: string;
   pack: string;
   stock: string;
+  description: string;
   prices: Record<string, string>;
 };
 
@@ -50,10 +51,11 @@ const toForm = (p: NomProduct | null, groupId?: number | null): Form => ({
   weight: p ? String(p.weight) : "",
   pack: p?.pack ?? "",
   stock: p ? String(p.stock) : "0",
+  description: p?.description ?? "",
   prices: Object.fromEntries(Object.entries(p?.prices ?? {}).map(([k, v]) => [k, String(v)])),
 });
 
-type Tab = "main" | "extra" | "images" | "prices";
+type Tab = "main" | "extra" | "description" | "images" | "prices";
 
 const inputCls =
   "h-10 w-full rounded-xl border border-border bg-pill px-3.5 text-sm outline-none transition focus:border-ring focus:bg-card focus:ring-4 focus:ring-ring/15";
@@ -180,6 +182,7 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
   const tabs: { key: Tab; label: string; icon: string; badge?: string }[] = [
     { key: "main", label: "Основная", icon: "FileText" },
     { key: "extra", label: "Дополнительно", icon: "SlidersHorizontal" },
+    { key: "description", label: "Описание", icon: "AlignLeft", badge: form.description.trim() ? "✓" : undefined },
     { key: "images", label: "Изображения", icon: "Images", badge: String(images.length) },
     { key: "prices", label: "Цены", icon: "Tag", badge: `${filledPrices}/${activeTypes.length}` },
   ];
@@ -205,14 +208,14 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
           </label>
         </div>
 
-        <div className="flex gap-1 border-b border-border px-5">
+        <div className="flex gap-1 overflow-x-auto border-b border-border px-5 [scrollbar-width:none]">
           {tabs.map((t) => (
             <button
               key={t.key}
               type="button"
               onClick={() => setTab(t.key)}
               className={cn(
-                "-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
+                "-mb-px flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
                 tab === t.key ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
               )}
             >
@@ -367,6 +370,20 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
               <p className="text-xs text-muted-foreground">
                 JPG, PNG или WEBP до 8 МБ, можно выбрать сразу несколько. Главное фото клиенты видят в каталоге первым — нажмите ★, чтобы назначить.
               </p>
+            </div>
+          )}
+
+          {tab === "description" && (
+            <div className="flex h-full animate-fade-in flex-col gap-1.5">
+              <span className="text-xs font-medium text-muted-foreground">Описание товара для клиентов</span>
+              <textarea
+                value={form.description}
+                onChange={(e) => set("description", e.target.value)}
+                rows={12}
+                placeholder="Состав, происхождение, условия хранения, особенности разделки, рекомендации по приготовлению…"
+                className="min-h-[260px] w-full flex-1 resize-y rounded-xl border border-border bg-pill px-3.5 py-3 text-sm leading-relaxed outline-none transition focus:border-ring focus:bg-card focus:ring-4 focus:ring-ring/15"
+              />
+              <span className="self-end text-[11px] text-muted-foreground">{form.description.length} символов</span>
             </div>
           )}
 

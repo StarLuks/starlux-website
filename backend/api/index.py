@@ -94,7 +94,8 @@ def touch_sync(cur):
 
 def products(cur, price_type_id=None):
     q(cur, "SELECT p.id, p.name, p.category, p.pack, p.pack_kg AS \"packKg\", COALESCE(pp.price, p.price) AS price, "
-           "p.stock, p.unit FROM {S}.products p LEFT JOIN {S}.product_prices pp ON pp.product_id = p.id AND pp.price_type_id = %s "
+           "p.stock, p.unit, p.article, p.manufacturer, p.full_name AS \"fullName\", p.description, p.dimensions, "
+           "p.barcode FROM {S}.products p LEFT JOIN {S}.product_prices pp ON pp.product_id = p.id AND pp.price_type_id = %s "
            "WHERE p.active ORDER BY p.sort, p.name", (price_type_id or 0,))
     rows = cur.fetchall()
     q(cur, "SELECT i.product_id, i.url FROM {S}.product_images i JOIN {S}.products p ON p.id = i.product_id "
