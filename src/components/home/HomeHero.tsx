@@ -2,14 +2,11 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import LoginDialog from "@/components/auth/LoginDialog";
 import Icon from "@/components/ui/icon";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { isStaff, usePortal } from "@/store/portal";
 import { downloadPriceList } from "@/data/catalog";
 import { toast } from "@/hooks/use-toast";
 
 const HERO_IMG = "https://cdn.poehali.dev/projects/00ffe408-2a47-4771-a509-db88cbfc9021/files/8058a748-2660-47a6-a335-bf01c6a8a557.jpg";
-
-type Modal = "about" | "contacts" | null;
 
 const Logo = () => (
   <Link to="/" className="flex items-center gap-2.5">
@@ -25,7 +22,6 @@ const Logo = () => (
 const HomeHero = () => {
   const navigate = useNavigate();
   const { user, products } = usePortal();
-  const [modal, setModal] = useState<Modal>(null);
   const [menu, setMenu] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const location = useLocation();
@@ -51,9 +47,11 @@ const HomeHero = () => {
     setLoginOpen(true);
   };
 
+  const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+
   const links = [
-    { label: "О компании", onClick: () => setModal("about") },
-    { label: "Контакты", onClick: () => setModal("contacts") },
+    { label: "О компании", onClick: () => scrollTo("about") },
+    { label: "Контакты", onClick: () => scrollTo("contacts") },
     { label: "Скачать прайс-лист", onClick: price, icon: "Download" },
   ];
 
@@ -132,72 +130,17 @@ const HomeHero = () => {
         </div>
       </div>
 
-      <footer className="relative z-10 flex justify-center px-6 pb-6">
-        <a
-          href="https://ssys.su"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group flex items-center gap-2.5 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm text-white/60 backdrop-blur-md transition-all hover:border-ice/40 hover:bg-white/10 hover:text-white"
-        >
-          <Icon name="Code2" size={15} className="text-ice transition-transform group-hover:rotate-12" />
-          <span>
-            Разработано{" "}
-            <span className="bg-gradient-to-r from-ice via-white to-ice bg-clip-text font-head font-bold tracking-wide text-transparent">
-              СпецСистемы
-            </span>{" "}
-            © 2026
-          </span>
-          <Icon name="ArrowUpRight" size={14} className="opacity-60 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-        </a>
-      </footer>
+      <button
+        type="button"
+        onClick={() => scrollTo("about")}
+        aria-label="Листать вниз"
+        className="relative z-10 mx-auto mb-8 grid h-12 w-12 animate-bounce place-items-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md hover:bg-white/20"
+      >
+        <Icon name="ChevronDown" size={22} />
+      </button>
 
       <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
 
-      <Dialog open={modal !== null} onOpenChange={(v) => !v && setModal(null)}>
-        <DialogContent className="max-w-lg rounded-[24px] border-0 bg-card">
-          {modal === "about" ? (
-            <>
-              <DialogHeader>
-                <DialogTitle className="font-head text-2xl font-bold">О компании</DialogTitle>
-                <DialogDescription>ООО «СтарЛюкс» — оптовая торговля замороженной продукцией.</DialogDescription>
-              </DialogHeader>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { i: "Beef", t: "Мясные полуфабрикаты" },
-                  { i: "Drumstick", t: "Курица" },
-                  { i: "CakeSlice", t: "Торты" },
-                  { i: "Milk", t: "Сыры" },
-                ].map((c) => (
-                  <div key={c.t} className="flex items-center gap-3 rounded-2xl bg-pill p-3 font-head text-sm font-semibold">
-                    <Icon name={c.i} fallback="Package" size={18} className="text-primary" /> {c.t}
-                  </div>
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Работаем с магазинами, кафе и ресторанами по договору. Заказы принимаем через личный кабинет — сразу передаём в учётную систему и отгружаем с соблюдением холодовой цепи.
-              </p>
-            </>
-          ) : (
-            <>
-              <DialogHeader>
-                <DialogTitle className="font-head text-2xl font-bold">Контакты</DialogTitle>
-                <DialogDescription>Станьте клиентом — менеджер заключит договор и выдаст доступ в кабинет.</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-2">
-                <a href="tel:+74950000000" className="flex items-center gap-3 rounded-2xl bg-pill p-4 font-head font-semibold hover:bg-accent">
-                  <Icon name="Phone" size={18} className="text-primary" /> +7 (495) 000-00-00
-                </a>
-                <a href="mailto:zakaz@starlux.ru" className="flex items-center gap-3 rounded-2xl bg-pill p-4 font-head font-semibold hover:bg-accent">
-                  <Icon name="Mail" size={18} className="text-primary" /> zakaz@starlux.ru
-                </a>
-                <div className="flex items-center gap-3 rounded-2xl bg-pill p-4 text-sm">
-                  <Icon name="MapPin" size={18} className="shrink-0 text-primary" /> Москва, склад-холодильник, пн–сб 7:00–20:00
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </section>
   );
 };
