@@ -32,6 +32,10 @@ export interface OrderItem {
   qty: number;
   boxPrice: number;
   sum: number;
+  article?: string;
+  manufacturer?: string;
+  code1c?: string;
+  unit?: string;
 }
 
 export interface Order {

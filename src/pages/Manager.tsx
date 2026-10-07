@@ -225,6 +225,7 @@ const Manager = () => {
             <OrdersList
               orders={filteredOrders}
               showClient={(o) => o.clientName}
+              detailed
               empty={loading ? "Загрузка…" : "Нет заказов по выбранному фильтру"}
               statusCell={(o) => (
                 <select

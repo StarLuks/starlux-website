@@ -125,8 +125,11 @@ def load_orders(cur, client_id=None, only_new=False):
     if not orders:
         return []
     ids = tuple(o['id'] for o in orders)
-    q(cur, "SELECT order_id, product_id AS \"productId\", name, qty, box_price AS \"boxPrice\", sum "
-           "FROM {S}.order_items WHERE order_id IN %s ORDER BY id", (ids,))
+    q(cur, "SELECT i.order_id, i.product_id AS \"productId\", i.name, i.qty, i.box_price AS \"boxPrice\", i.sum, "
+           "COALESCE(p.article, '') AS article, COALESCE(p.manufacturer, '') AS manufacturer, "
+           "COALESCE(p.code_1c, '') AS \"code1c\", COALESCE(p.unit, '') AS unit "
+           "FROM {S}.order_items i LEFT JOIN {S}.products p ON p.id = i.product_id "
+           "WHERE i.order_id IN %s ORDER BY i.id", (ids,))
     items = {}
     for it in cur.fetchall():
         items.setdefault(it.pop('order_id'), []).append(it)
