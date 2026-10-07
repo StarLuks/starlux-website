@@ -3,6 +3,8 @@ import { Navigate, useNavigate } from "react-router-dom";
 import TopNav from "@/components/layout/TopNav";
 import OrdersList from "@/components/order/OrdersList";
 import NewClientDialog from "@/components/manager/NewClientDialog";
+import NomenclatureSection from "@/components/manager/NomenclatureSection";
+import PriceTypesSection from "@/components/manager/PriceTypesSection";
 import { Client, Order, OrderStatus, STATUSES, isStaff, usePortal } from "@/store/portal";
 import { downloadPriceList, rub } from "@/data/catalog";
 import { api } from "@/lib/api";
@@ -10,7 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import Icon from "@/components/ui/icon";
 
-type Tab = "orders" | "clients";
+type Tab = "orders" | "clients" | "nomenclature" | "prices";
 
 const Manager = () => {
   const { ready, user, products, logout, lastSync, reloadCatalog } = usePortal();
@@ -54,6 +56,7 @@ const Manager = () => {
   if (!ready) return <div className="grid min-h-screen place-items-center text-muted-foreground">Загрузка…</div>;
   if (!isStaff(user)) return <Navigate to="/" replace state={{ login: true }} />;
 
+  const isRef = tab === "nomenclature" || tab === "prices";
   const today = new Date().toDateString();
   const todayOrders = orders.filter((o) => new Date(o.date).toDateString() === today);
   const newCount = orders.filter((o) => o.status === "Новый" || o.status === "Передан в 1С").length;
@@ -89,11 +92,18 @@ const Manager = () => {
   };
 
   return (
-    <main className="grid min-h-screen grid-rows-[auto_auto_1fr] gap-5 px-4 pb-6 pt-5 md:h-screen md:px-6">
+    <main
+      className={cn(
+        "grid min-h-screen gap-5 px-4 pb-6 pt-5 md:h-screen md:px-6",
+        isRef ? "grid-rows-[auto_1fr]" : "grid-rows-[auto_auto_1fr]"
+      )}
+    >
       <TopNav
         items={[
           { label: `Заказы · ${orders.length}`, active: tab === "orders", onClick: () => setTab("orders") },
           { label: `Клиенты · ${clients.length}`, active: tab === "clients", onClick: () => setTab("clients") },
+          { label: "Номенклатура", active: tab === "nomenclature", onClick: () => setTab("nomenclature") },
+          { label: "Типы цен", active: tab === "prices", onClick: () => setTab("prices") },
           { label: "Прайс ↓", onClick: () => downloadPriceList(products) },
         ]}
         right={
@@ -123,6 +133,10 @@ const Manager = () => {
         }
       />
 
+      {tab === "nomenclature" && <NomenclatureSection onChanged={() => reloadCatalog().catch(() => undefined)} />}
+      {tab === "prices" && <PriceTypesSection />}
+
+      {!isRef && (
       <section className="grid animate-fade-in grid-cols-1 gap-5 md:grid-cols-[1.2fr_2fr_1fr]">
         <div className="tile relative flex min-h-[120px] flex-col justify-between overflow-hidden bg-gradient-to-br from-card via-card to-accent/60 p-5">
           <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-ice/25 blur-2xl" />
@@ -180,7 +194,9 @@ const Manager = () => {
           </button>
         )}
       </section>
+      )}
 
+      {!isRef && (
       <section className="tile min-h-0 overflow-y-auto">
         {tab === "orders" ? (
           <>
@@ -252,6 +268,7 @@ const Manager = () => {
           </>
         )}
       </section>
+      )}
 
       <NewClientDialog open={newClient} onOpenChange={setNewClient} onCreated={load} />
     </main>

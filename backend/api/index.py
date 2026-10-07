@@ -9,6 +9,8 @@ from decimal import Decimal
 import psycopg2
 import psycopg2.extras
 
+import nomenclature
+
 SCHEMA = os.environ.get('MAIN_DB_SCHEMA', 't_p16770056_starlux_website')
 STATUSES = ['Новый', 'Передан в 1С', 'Собирается', 'Отгружен', 'Доставлен', 'Отменён']
 STAFF = ('manager', 'admin')
@@ -155,6 +157,13 @@ def handle_1c(cur, action, body, headers, all_orders=False):
                    "stock=EXCLUDED.stock, sort=EXCLUDED.sort, active=EXCLUDED.active, updated_at=NOW()",
               (str(p['id']), p['name'], p.get('category', 'Прочее'), p.get('pack', ''), p.get('packKg', 1),
                p.get('price', 0), p.get('stock', 0), p.get('sort', i), p.get('active', True), p.get('unit', 'кор.')))
+        q(cur, "INSERT INTO {S}.product_groups (name, sort) SELECT DISTINCT p.category, 999 FROM {S}.products p "
+               "WHERE p.group_id IS NULL AND NOT EXISTS (SELECT 1 FROM {S}.product_groups g WHERE g.name = p.category)")
+        q(cur, "UPDATE {S}.products p SET group_id = g.id FROM {S}.product_groups g WHERE p.group_id IS NULL AND g.name = p.category")
+        q(cur, "INSERT INTO {S}.product_prices (product_id, price_type_id, price) "
+               "SELECT p.id, t.id, p.price FROM {S}.products p, {S}.price_types t WHERE t.is_main AND p.id IN %s "
+               "ON CONFLICT (product_id, price_type_id) DO UPDATE SET price = EXCLUDED.price, updated_at = NOW()",
+          (tuple(str(p['id']) for p in rows) or ('',),))
         if body.get('full'):
             ids = tuple(str(p['id']) for p in rows) or ('',)
             q(cur, "UPDATE {S}.products SET active = FALSE WHERE id NOT IN %s", (ids,))
@@ -296,6 +305,10 @@ def handler(event: dict, context) -> dict:
 
         if not staff:
             return resp(403, {'error': 'Недостаточно прав'})
+
+        res = nomenclature.handle(cur, action, body)
+        if res:
+            return resp(*res)
 
         if action == 'set_status':
             if body.get('status') not in STATUSES:
