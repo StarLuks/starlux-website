@@ -53,7 +53,7 @@ const toForm = (p: NomProduct | null, groupId?: number | null): Form => ({
   prices: Object.fromEntries(Object.entries(p?.prices ?? {}).map(([k, v]) => [k, String(v)])),
 });
 
-type Tab = "main" | "images" | "prices";
+type Tab = "main" | "extra" | "images" | "prices";
 
 const inputCls =
   "h-10 w-full rounded-xl border border-border bg-pill px-3.5 text-sm outline-none transition focus:border-ring focus:bg-card focus:ring-4 focus:ring-ring/15";
@@ -103,7 +103,7 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
     });
     if (!/^\d+$/.test(form.stock.trim())) {
       toast({ title: "Остаток должен быть целым числом от 0" });
-      setTab("main");
+      setTab("extra");
       return null;
     }
     const r = await api<{ id: string }>("product_save", { ...form, groupId: Number(form.groupId), prices });
@@ -179,6 +179,7 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
   const filledPrices = activeTypes.filter((t) => (form.prices[t.id] ?? "").trim() !== "").length;
   const tabs: { key: Tab; label: string; icon: string; badge?: string }[] = [
     { key: "main", label: "Основная", icon: "FileText" },
+    { key: "extra", label: "Дополнительно", icon: "SlidersHorizontal" },
     { key: "images", label: "Изображения", icon: "Images", badge: String(images.length) },
     { key: "prices", label: "Цены", icon: "Tag", badge: `${filledPrices}/${activeTypes.length}` },
   ];
@@ -253,6 +254,11 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
               <Field label="Единица измерения">
                 <input className={inputCls} value={form.unit} onChange={(e) => set("unit", e.target.value)} placeholder="кор., кг, шт." />
               </Field>
+            </div>
+          )}
+
+          {tab === "extra" && (
+            <div className="grid animate-fade-in grid-cols-2 gap-x-3 gap-y-3">
               <Field label="Производитель" className="col-span-2">
                 <input className={inputCls} value={form.manufacturer} onChange={(e) => set("manufacturer", e.target.value)} />
               </Field>
