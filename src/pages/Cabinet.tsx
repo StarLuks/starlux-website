@@ -22,7 +22,6 @@ import {
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import Icon from "@/components/ui/icon";
-import { cn } from "@/lib/utils";
 
 type Tab = "catalog" | "orders";
 
@@ -144,7 +143,7 @@ const Cabinet = () => {
   };
 
   return (
-    <main className={cn("grid min-h-screen grid-rows-[auto_auto_1fr] gap-5 px-4 pb-6 pt-5 md:h-screen md:px-6", tab === "catalog" && "max-md:pb-28")}>
+    <main className="grid min-h-screen grid-rows-[auto_auto_1fr] gap-5 px-4 pb-6 pt-5 md:h-screen md:px-6">
       <TopNav
         items={[
           { label: "Новый заказ", active: tab === "catalog", onClick: () => setTab("catalog") },
@@ -173,7 +172,7 @@ const Cabinet = () => {
 
       {tab === "catalog" ? (
         <>
-          <div className="animate-fade-in">
+          <div className="sticky top-0 z-30 -mx-4 -mt-2 animate-fade-in bg-background/85 px-4 py-2 backdrop-blur-md md:-mx-6 md:px-6">
             <OrderFilters
               categories={categories}
               category={activeCat}
@@ -187,6 +186,9 @@ const Cabinet = () => {
               submitLabel="Оформить заказ →"
               search={search}
               onSearch={setSearch}
+              onClear={() => {
+                if (picked.length && window.confirm("Очистить все выбранные количества?")) setQty({});
+              }}
             />
           </div>
           <PriceTable
