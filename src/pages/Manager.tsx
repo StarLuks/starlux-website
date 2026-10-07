@@ -62,7 +62,16 @@ const Manager = () => {
     setOrders((prev) => prev.map((x) => (x.id === o.id ? { ...x, status } : x)));
     try {
       await api("set_status", { orderId: o.id, status });
-      toast({ title: `${o.number}: ${status}`, description: "Статус обновлён." });
+      toast({
+        title: `${o.number}: ${status}`,
+        description:
+          status === "Отменён"
+            ? "Товар возвращён на остаток."
+            : o.status === "Отменён"
+              ? "Заказ восстановлен, товар снова списан с остатка."
+              : "Статус обновлён.",
+      });
+      reloadCatalog();
     } catch (e) {
       toast({ title: "Не удалось сменить статус", description: (e as Error).message });
       load();

@@ -112,6 +112,34 @@ def load_orders(cur, client_id=None, only_new=False):
     return orders
 
 
+def change_status(cur, order_id, new_status):
+    """Меняет статус заказа; при отмене возвращает товар на остаток, при восстановлении — списывает снова."""
+    q(cur, "SELECT status FROM {S}.orders WHERE id = %s", (order_id,))
+    row = cur.fetchone()
+    if not row:
+        return 'Заказ не найден'
+    old = row['status']
+    if old == new_status:
+        return None
+    q(cur, "UPDATE {S}.orders SET status = %s WHERE id = %s AND status = %s RETURNING id", (new_status, order_id, old))
+    if not cur.fetchone():
+        return 'Статус заказа уже изменён, обновите страницу'
+    if new_status == 'Отменён':
+        q(cur, "UPDATE {S}.products p SET stock = p.stock + i.qty FROM {S}.order_items i "
+               "WHERE i.order_id = %s AND i.product_id = p.id", (order_id,))
+    elif old == 'Отменён':
+        q(cur, "SELECT p.name, p.stock, p.unit, i.qty FROM {S}.order_items i JOIN {S}.products p ON p.id = i.product_id "
+               "WHERE i.order_id = %s AND i.qty > p.stock", (order_id,))
+        short = cur.fetchall()
+        if short:
+            q(cur, "UPDATE {S}.orders SET status = 'Отменён' WHERE id = %s", (order_id,))
+            return 'Недостаточно остатка для восстановления: ' + '; '.join(
+                f"{x['name']} — нужно {x['qty']}, доступно {x['stock']} {x['unit']}" for x in short)
+        q(cur, "UPDATE {S}.products p SET stock = p.stock - i.qty FROM {S}.order_items i "
+               "WHERE i.order_id = %s AND i.product_id = p.id", (order_id,))
+    return None
+
+
 def handle_1c(cur, action, body, headers, all_orders=False):
     key = os.environ.get('ONEC_API_KEY')
     given = headers.get('X-Api-Key') or headers.get('x-api-key')
@@ -161,8 +189,11 @@ def handle_1c(cur, action, body, headers, all_orders=False):
             if st and st not in STATUSES:
                 st = None
             q(cur, "UPDATE {S}.orders SET exported_1c = TRUE, exported_at = COALESCE(exported_at, NOW()), "
-                   "status = COALESCE(%s, CASE WHEN status = 'Новый' THEN 'Передан в 1С' ELSE status END) WHERE number = %s",
-              (st, o['number']))
+                   "status = CASE WHEN status = 'Новый' THEN 'Передан в 1С' ELSE status END WHERE number = %s RETURNING id",
+              (o['number'],))
+            row = cur.fetchone()
+            if row and st:
+                change_status(cur, row['id'], st)
         touch_sync(cur)
         return resp(200, {'ok': True})
 
@@ -254,7 +285,9 @@ def handler(event: dict, context) -> dict:
         if action == 'set_status':
             if body.get('status') not in STATUSES:
                 return resp(400, {'error': 'Неизвестный статус'})
-            q(cur, "UPDATE {S}.orders SET status = %s WHERE id = %s", (body['status'], int(body['orderId'])))
+            err = change_status(cur, int(body['orderId']), body['status'])
+            if err:
+                return resp(409, {'error': err})
             return resp(200, {'ok': True})
 
         if action == 'clients':
