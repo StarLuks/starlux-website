@@ -6,12 +6,24 @@ import PriceTable from "@/components/order/PriceTable";
 import OrdersList from "@/components/order/OrdersList";
 import ConfirmOrderDialog from "@/components/order/ConfirmOrderDialog";
 import { boxPrice, categoriesOf, downloadPriceList, rub } from "@/data/catalog";
-import { Order, usePortal } from "@/store/portal";
+import { Order, OrderStatus, usePortal } from "@/store/portal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import Icon from "@/components/ui/icon";
 
 type Tab = "catalog" | "orders";
+
+const CANCELABLE: OrderStatus[] = ["Новый", "Передан в 1С"];
 
 const Cabinet = () => {
   const { ready, user, products, logout, lastSync, reloadCatalog } = usePortal();
@@ -25,6 +37,7 @@ const Cabinet = () => {
   const [sending, setSending] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState<Order | null>(null);
 
   const activeCat = category || categories[0] || "";
 
@@ -78,6 +91,20 @@ const Cabinet = () => {
     } finally {
       setSending(false);
     }
+  };
+
+  const cancelOrder = async () => {
+    const o = cancelling;
+    setCancelling(null);
+    if (!o) return;
+    try {
+      await api("cancel_order", { orderId: o.id });
+      toast({ title: `Заказ ${o.number} отменён`, description: "Товар возвращён на склад." });
+    } catch (e) {
+      toast({ title: "Не удалось отменить заказ", description: (e as Error).message });
+    }
+    loadOrders();
+    reloadCatalog();
   };
 
   return (
@@ -169,6 +196,7 @@ const Cabinet = () => {
               orders={orders}
               empty={loading ? "Загрузка…" : "Заказов пока нет — сформируйте первый"}
               actions={(o) => (
+                <>
                 <button
                   type="button"
                   className="pill bg-card hover:bg-accent"
@@ -186,11 +214,39 @@ const Cabinet = () => {
                 >
                   Повторить заказ
                 </button>
+                {CANCELABLE.includes(o.status) && (
+                  <button
+                    type="button"
+                    onClick={() => setCancelling(o)}
+                    className="pill flex items-center gap-1.5 bg-card text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    <Icon name="X" size={14} />
+                    Отменить заказ
+                  </button>
+                )}
+                </>
               )}
             />
           </section>
         </>
       )}
+
+      <AlertDialog open={!!cancelling} onOpenChange={(v) => !v && setCancelling(null)}>
+        <AlertDialogContent className="rounded-[24px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-head">Отменить заказ {cancelling?.number}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Заказ на сумму {cancelling ? rub(cancelling.total) : ""} будет отменён, а товар вернётся на склад. Это действие нельзя отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Не отменять</AlertDialogCancel>
+            <AlertDialogAction onClick={cancelOrder} className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Да, отменить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <ConfirmOrderDialog
         open={confirm}

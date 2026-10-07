@@ -279,6 +279,21 @@ def handler(event: dict, context) -> dict:
                   (oid, *l))
             return resp(200, {'id': oid, 'number': number, 'total': total})
 
+        if action == 'cancel_order':
+            oid = int(body.get('orderId', 0))
+            q(cur, "SELECT status, client_id FROM {S}.orders WHERE id = %s", (oid,))
+            o = cur.fetchone()
+            if not o or (not staff and o['client_id'] != user['id']):
+                return resp(404, {'error': 'Заказ не найден'})
+            if o['status'] == 'Отменён':
+                return resp(409, {'error': 'Заказ уже отменён'})
+            if o['status'] not in ('Новый', 'Передан в 1С'):
+                return resp(409, {'error': 'Заказ уже собирается — для отмены свяжитесь с менеджером'})
+            err = change_status(cur, oid, 'Отменён')
+            if err:
+                return resp(409, {'error': err})
+            return resp(200, {'ok': True})
+
         if not staff:
             return resp(403, {'error': 'Недостаточно прав'})
 
