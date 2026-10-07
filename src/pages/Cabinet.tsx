@@ -4,6 +4,7 @@ import TopNav from "@/components/layout/TopNav";
 import OrderFilters from "@/components/order/OrderFilters";
 import PriceTable from "@/components/order/PriceTable";
 import OrdersList from "@/components/order/OrdersList";
+import OrdersFilterBar, { EMPTY_FILTER, OrdersFilter } from "@/components/manager/OrdersFilterBar";
 import ConfirmOrderDialog from "@/components/order/ConfirmOrderDialog";
 import { boxPrice, categoriesOf, rub } from "@/data/catalog";
 import { downloadBase64 } from "@/lib/nomenclature";
@@ -43,6 +44,24 @@ const Cabinet = () => {
   const activeCat = category || categories[0] || "";
 
   const [priceBusy, setPriceBusy] = useState(false);
+  const [of, setOf] = useState<OrdersFilter>(EMPTY_FILTER);
+  const filteredOrders = useMemo(() => {
+    const s = of.q.trim().toLowerCase();
+    const from = of.range?.from ? new Date(of.range.from).setHours(0, 0, 0, 0) : null;
+    const to = of.range?.from ? new Date(of.range.to ?? of.range.from).setHours(23, 59, 59, 999) : null;
+    return orders.filter((o) => {
+      if (of.statuses.length && !of.statuses.includes(o.status)) return false;
+      const t = new Date(o.date).getTime();
+      if (from !== null && to !== null && (t < from || t > to)) return false;
+      if (s && !o.number.toLowerCase().includes(s) && !o.items.some((it) => it.name.toLowerCase().includes(s))) return false;
+      return true;
+    });
+  }, [orders, of]);
+  const statusCounts = useMemo(() => {
+    const m: Record<string, number> = {};
+    orders.forEach((o) => (m[o.status] = (m[o.status] ?? 0) + 1));
+    return m;
+  }, [orders]);
   const downloadPrice = async () => {
     if (priceBusy) return;
     setPriceBusy(true);
@@ -180,38 +199,52 @@ const Cabinet = () => {
       ) : (
         <>
           <section className="grid animate-fade-in grid-cols-1 gap-5 md:grid-cols-[1.2fr_1fr_1fr]">
-            <div className="tile relative flex min-h-[120px] flex-col justify-between overflow-hidden bg-gradient-to-br from-card via-card to-accent/60 p-5">
+            <div className="tile relative flex items-center gap-3 overflow-hidden bg-gradient-to-br from-card via-card to-accent/60 px-5 py-3">
               <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-ice/25 blur-2xl" />
-              <span className="relative grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-ice to-primary text-white shadow-lg shadow-primary/25">
+              <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-ice to-primary text-white shadow-lg shadow-primary/25">
                 <Icon name="Package" size={20} />
               </span>
               <div className="relative">
-                <h1 className="font-head text-2xl font-bold tracking-[-0.01em] text-foreground">Мои заказы</h1>
+                <h1 className="font-head text-xl font-bold tracking-[-0.01em] text-foreground">Мои заказы</h1>
                 <p className="mt-0.5 text-[0.75em] text-muted-foreground">Всего заказов: {orders.length}</p>
               </div>
             </div>
-            <div className="tile flex flex-col justify-between p-5">
+            <div className="tile flex items-center justify-between gap-3 px-5 py-3">
               <span className="text-[0.75em] text-muted-foreground">В работе.</span>
-              <b className="font-head text-[2em] font-light">
+              <b className="font-head text-[1.6em] font-light leading-none">
                 {orders.filter((o) => o.status !== "Доставлен" && o.status !== "Отменён").length}
               </b>
             </div>
             <button
               type="button"
               onClick={() => setTab("catalog")}
-              className="flex min-h-[120px] flex-col justify-between rounded-[18px] bg-ocean px-5 py-4 text-left font-head text-ocean-foreground transition-transform hover:-translate-y-0.5"
+              className="flex items-center justify-between gap-3 rounded-[18px] bg-ocean px-5 py-3 text-left font-head text-ocean-foreground transition-transform hover:-translate-y-0.5"
             >
-              <span>Сумма за всё время</span>
-              <b className="text-[2em] font-light">{rub(orders.reduce((s, o) => s + Number(o.total), 0))}</b>
-              <span className="text-[0.85em]">Сформировать новый заказ →</span>
+              <span className="flex flex-col">
+                <span className="text-[0.8em] opacity-90">Сумма за всё время</span>
+                <span className="text-[0.75em] opacity-75">Новый заказ →</span>
+              </span>
+              <b className="whitespace-nowrap text-[1.5em] font-light leading-none">{rub(orders.reduce((s, o) => s + Number(o.total), 0))}</b>
             </button>
           </section>
           <section className="tile min-h-0 overflow-y-auto">
             <div className="tile-label">История заказов.</div>
+            <OrdersFilterBar
+              value={of}
+              onChange={setOf}
+              counts={statusCounts}
+              placeholder="№ заказа или название товара…"
+            />
             <OrdersList
-              orders={orders}
+              orders={filteredOrders}
               detailed
-              empty={loading ? "Загрузка…" : "Заказов пока нет — сформируйте первый"}
+              empty={
+                loading
+                  ? "Загрузка…"
+                  : orders.length
+                    ? "По выбранным условиям заказов нет"
+                    : "Заказов пока нет — сформируйте первый"
+              }
               actions={(o) => (
                 <>
                 <button

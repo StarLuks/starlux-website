@@ -21,8 +21,10 @@ export const EMPTY_FILTER: OrdersFilter = { statuses: [], range: undefined, clie
 interface Props {
   value: OrdersFilter;
   onChange: (v: OrdersFilter) => void;
-  clients: Client[];
+  clients?: Client[];
   counts: Record<string, number>;
+  placeholder?: string;
+  className?: string;
 }
 
 const trigger =
@@ -51,7 +53,7 @@ const PRESETS: { label: string; range: () => DateRange }[] = [
   },
 ];
 
-const OrdersFilterBar = ({ value, onChange, clients, counts }: Props) => {
+const OrdersFilterBar = ({ value, onChange, clients, counts, placeholder = "№ заказа…", className }: Props) => {
   const [clientQ, setClientQ] = useState("");
   const [clientOpen, setClientOpen] = useState(false);
   const set = (p: Partial<OrdersFilter>) => onChange({ ...value, ...p });
@@ -59,10 +61,10 @@ const OrdersFilterBar = ({ value, onChange, clients, counts }: Props) => {
   const toggleStatus = (s: OrderStatus) =>
     set({ statuses: value.statuses.includes(s) ? value.statuses.filter((x) => x !== s) : [...value.statuses, s] });
 
-  const client = clients.find((c) => c.id === value.clientId);
+  const client = clients?.find((c) => c.id === value.clientId);
   const clientList = useMemo(() => {
     const s = clientQ.trim().toLowerCase();
-    return clients.filter((c) => !s || c.company.toLowerCase().includes(s) || c.inn.includes(s));
+    return (clients ?? []).filter((c) => !s || c.company.toLowerCase().includes(s) || c.inn.includes(s));
   }, [clients, clientQ]);
 
   const statusLabel =
@@ -81,7 +83,7 @@ const OrdersFilterBar = ({ value, onChange, clients, counts }: Props) => {
   const active = value.statuses.length > 0 || !!value.range?.from || value.clientId !== null || value.q.trim() !== "";
 
   return (
-    <div className="flex flex-wrap items-center gap-2 px-[18px] pb-4">
+    <div className={cn("flex flex-wrap items-center gap-2 px-[18px] pb-4", className)}>
       <Popover>
         <PopoverTrigger className={cn(trigger, value.statuses.length && "bg-primary/10 text-primary")}>
           <Icon name="ListFilter" size={15} />
@@ -147,6 +149,7 @@ const OrdersFilterBar = ({ value, onChange, clients, counts }: Props) => {
         </PopoverContent>
       </Popover>
 
+      {clients && (
       <Popover open={clientOpen} onOpenChange={setClientOpen}>
         <PopoverTrigger className={cn(trigger, "max-w-[260px]", client && "bg-primary/10 text-primary")}>
           <Icon name="Building2" size={15} className="shrink-0" />
@@ -197,13 +200,14 @@ const OrdersFilterBar = ({ value, onChange, clients, counts }: Props) => {
           </div>
         </PopoverContent>
       </Popover>
+      )}
 
       <div className="relative min-w-[160px] flex-1">
         <Icon name="Search" size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input
           value={value.q}
           onChange={(e) => set({ q: e.target.value })}
-          placeholder="№ заказа…"
+          placeholder={placeholder}
           className="h-10 w-full rounded-full bg-pill pl-9 pr-4 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/30"
         />
       </div>
