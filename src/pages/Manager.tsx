@@ -105,7 +105,7 @@ const Manager = () => {
                 await logout();
                 navigate("/");
               }}
-              className="pill bg-card transition-colors hover:bg-foreground hover:text-card"
+              className="pill bg-card transition-colors hover:bg-primary hover:text-primary-foreground"
             >
               Выйти
             </button>
@@ -129,7 +129,7 @@ const Manager = () => {
                   key={s}
                   type="button"
                   onClick={() => setFilter(s)}
-                  className={cn("pill transition-colors", filter === s ? "bg-foreground text-card" : "hover:bg-accent")}
+                  className={cn("pill transition-colors", filter === s ? "bg-primary text-primary-foreground" : "hover:bg-accent")}
                 >
                   {s}
                 </button>
@@ -144,7 +144,7 @@ const Manager = () => {
         </div>
 
         {tab === "orders" ? (
-          <div className="flex min-h-[120px] flex-col justify-between rounded-[10px] bg-ocean px-5 py-4 font-head text-ocean-foreground">
+          <div className="flex min-h-[120px] flex-col justify-between rounded-[18px] bg-ocean px-5 py-4 font-head text-ocean-foreground">
             <span>Ждут обработки: {newCount}</span>
             <b className="text-[2em] font-light">{rub(todayOrders.reduce((s, o) => s + Number(o.total), 0))}</b>
             <span className="text-[0.85em]">Заказы сегодня · {todayOrders.length} шт.</span>
@@ -153,7 +153,7 @@ const Manager = () => {
           <button
             type="button"
             onClick={() => setNewClient(true)}
-            className="group flex min-h-[120px] flex-col justify-between rounded-[10px] bg-ocean px-5 py-4 text-left font-head text-ocean-foreground transition-transform hover:-translate-y-0.5"
+            className="group flex min-h-[120px] flex-col justify-between rounded-[18px] bg-ocean px-5 py-4 text-left font-head text-ocean-foreground transition-transform hover:-translate-y-0.5"
           >
             <span>Активных: {clients.filter((c) => !c.blocked).length} · заблок.: {clients.filter((c) => c.blocked).length}</span>
             <b className="text-[2em] font-light">+ Клиент</b>

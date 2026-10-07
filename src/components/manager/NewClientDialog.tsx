@@ -56,7 +56,7 @@ const NewClientDialog = ({ open, onOpenChange, onCreated }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg rounded-[10px] border-0 bg-card font-mono">
+      <DialogContent className="max-w-lg rounded-[18px] border-0 bg-card font-sans">
         <DialogHeader>
           <DialogTitle className="font-head text-2xl font-light">Новый клиент</DialogTitle>
           <DialogDescription>Клиент сможет войти по этому логину и паролю.</DialogDescription>

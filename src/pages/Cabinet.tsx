@@ -97,7 +97,7 @@ const Cabinet = () => {
                 await logout();
                 navigate("/");
               }}
-              className="pill bg-card transition-colors hover:bg-foreground hover:text-card"
+              className="pill bg-card transition-colors hover:bg-primary hover:text-primary-foreground"
             >
               Выйти
             </button>
@@ -148,7 +148,7 @@ const Cabinet = () => {
             <button
               type="button"
               onClick={() => setTab("catalog")}
-              className="flex min-h-[120px] flex-col justify-between rounded-[10px] bg-ocean px-5 py-4 text-left font-head text-ocean-foreground transition-transform hover:-translate-y-0.5"
+              className="flex min-h-[120px] flex-col justify-between rounded-[18px] bg-ocean px-5 py-4 text-left font-head text-ocean-foreground transition-transform hover:-translate-y-0.5"
             >
               <span>Сумма за всё время</span>
               <b className="text-[2em] font-light">{rub(orders.reduce((s, o) => s + Number(o.total), 0))}</b>

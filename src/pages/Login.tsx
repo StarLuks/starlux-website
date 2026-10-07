@@ -90,7 +90,7 @@ const Login = () => {
             </div>
           </label>
 
-          {error && <p className="animate-fade-in rounded-[10px] bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
+          {error && <p className="animate-fade-in rounded-[18px] bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</p>}
 
           <button type="submit" disabled={loading} className="disabled:opacity-60 rounded-full bg-ocean px-5 py-3 font-head text-ocean-foreground transition-opacity hover:opacity-90">
             {loading ? "Входим…" : "Войти →"}

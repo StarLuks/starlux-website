@@ -19,9 +19,9 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				sans: ['Inter', 'sans-serif'],
-				head: ['Inter', 'sans-serif'],
-				mono: ['"IBM Plex Mono"', 'monospace'],
+				sans: ['"Golos Text"', 'sans-serif'],
+				head: ['Manrope', 'sans-serif'],
+				mono: ['"JetBrains Mono"', 'monospace'],
 			},
 			colors: {
 				ocean: {
@@ -29,6 +29,7 @@ export default {
 					foreground: 'hsl(var(--ocean-foreground))'
 				},
 				pill: 'hsl(var(--pill))',
+				ice: 'hsl(var(--ice))',
 				success: 'hsl(var(--success))',
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',

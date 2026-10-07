@@ -10,7 +10,7 @@ const categories = [
   { icon: "Beef", title: "Мясные полуфабрикаты", note: "пельмени, котлеты, фарш", cls: "bg-card" },
   { icon: "Drumstick", title: "Курица", note: "тушки, филе, окорочка", cls: "bg-accent text-accent-foreground" },
   { icon: "CakeSlice", title: "Торты", note: "классика и десерты", cls: "bg-card" },
-  { icon: "Milk", title: "Сыры", note: "твёрдые и полутвёрдые", cls: "bg-foreground text-card" },
+  { icon: "Milk", title: "Сыры", note: "твёрдые и полутвёрдые", cls: "bg-primary text-primary-foreground" },
 ];
 
 const perks = [
@@ -35,7 +35,7 @@ const HomeHero = () => {
           <button
             type="button"
             onClick={() => navigate(cabinetHref)}
-            className="pill bg-foreground text-card transition-opacity hover:opacity-85"
+            className="pill bg-primary text-primary-foreground transition-opacity hover:opacity-85"
           >
             {user ? `${user.company} →` : "Войти в кабинет →"}
           </button>
@@ -91,7 +91,7 @@ const HomeHero = () => {
               key={c.title}
               style={{ animationDelay: `${120 + i * 80}ms` }}
               className={cn(
-                "group flex min-h-[150px] animate-fade-in flex-col justify-between rounded-[10px] p-5 transition-transform hover:-translate-y-1",
+                "group flex min-h-[150px] animate-fade-in flex-col justify-between rounded-[18px] p-5 transition-transform hover:-translate-y-1",
                 c.cls
               )}
             >
@@ -108,7 +108,7 @@ const HomeHero = () => {
             type="button"
             onClick={() => navigate(cabinetHref)}
             style={{ animationDelay: "440ms" }}
-            className="group col-span-2 flex animate-fade-in items-center justify-between rounded-[10px] bg-ocean px-6 py-5 text-left font-head text-ocean-foreground transition-transform hover:-translate-y-0.5"
+            className="group col-span-2 flex animate-fade-in items-center justify-between rounded-[18px] bg-ocean px-6 py-5 text-left font-head text-ocean-foreground transition-transform hover:-translate-y-0.5"
           >
             <span>
               <span className="block text-[0.8em] opacity-80">Актуальный прайс-лист</span>

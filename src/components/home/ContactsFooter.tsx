@@ -5,13 +5,13 @@ const ContactsFooter = () => {
   return (
     <section id="contacts" className="scroll-mt-4 px-4 pb-6 md:px-6">
       <div className="grid grid-cols-1 gap-5 md:grid-cols-[1.4fr_1fr_1fr]">
-        <div className="flex flex-col justify-between rounded-[10px] bg-accent p-6 text-accent-foreground">
+        <div className="flex flex-col justify-between rounded-[18px] bg-accent p-6 text-accent-foreground">
           <span className="text-[0.75em]">Стать клиентом.</span>
           <p className="mt-6 font-head text-[26px] font-light leading-tight">
             Оставьте заявку — менеджер заключит договор и выдаст доступ в кабинет.
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
-            <a href="tel:+74950000000" className="pill bg-foreground text-card transition-opacity hover:opacity-85">
+            <a href="tel:+74950000000" className="pill bg-primary text-primary-foreground transition-opacity hover:opacity-85">
               Позвонить менеджеру
             </a>
             <Link to="/login" className="pill bg-card transition-opacity hover:opacity-85">

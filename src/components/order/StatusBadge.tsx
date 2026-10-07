@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 const styles: Record<OrderStatus, string> = {
   "Новый": "bg-accent text-accent-foreground",
   "Передан в 1С": "bg-ocean text-ocean-foreground",
-  "Собирается": "bg-foreground text-card",
+  "Собирается": "bg-primary text-primary-foreground",
   "Отгружен": "bg-pill text-foreground",
   "Доставлен": "bg-success/15 text-success",
   "Отменён": "bg-destructive/10 text-destructive",

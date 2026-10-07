@@ -64,7 +64,7 @@ const TopNav = ({ items, right }: Props) => {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-14 z-50 w-72 animate-scale-in space-y-1 rounded-[10px] bg-card p-2 text-sm shadow-xl lg:hidden">
+        <div className="absolute right-0 top-14 z-50 w-72 animate-scale-in space-y-1 rounded-[18px] bg-card p-2 text-sm shadow-xl lg:hidden">
           <div className="md:hidden">{items.map((it) => renderItem(it, true))}</div>
           <div className="flex flex-col gap-2 p-2 [&>*]:text-left">{right}</div>
         </div>

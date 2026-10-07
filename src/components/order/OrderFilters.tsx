@@ -32,7 +32,7 @@ const OrderFilters = ({ categories, category, onCategory, count, total, onSubmit
               onClick={() => onCategory(c)}
               className={cn(
                 "pill transition-colors",
-                c === category ? "bg-foreground text-card" : "hover:bg-accent hover:text-accent-foreground"
+                c === category ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-accent-foreground"
               )}
             >
               {c}
@@ -52,7 +52,7 @@ const OrderFilters = ({ categories, category, onCategory, count, total, onSubmit
       <button
         type="button"
         onClick={onSubmit}
-        className="group flex min-h-[120px] flex-col justify-between rounded-[10px] bg-ocean px-5 py-4 text-left font-head text-ocean-foreground transition-transform hover:-translate-y-0.5"
+        className="group flex min-h-[120px] flex-col justify-between rounded-[18px] bg-ocean px-5 py-4 text-left font-head text-ocean-foreground transition-transform hover:-translate-y-0.5"
       >
         <span>Позиций в заказе: {count}</span>
         <b key={total} className="animate-bump text-[2em] font-light">{rub(total)}</b>

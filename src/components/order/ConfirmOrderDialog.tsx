@@ -19,7 +19,7 @@ const ConfirmOrderDialog = ({ open, onOpenChange, qty, products, sending, onConf
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl rounded-[10px] border-0 bg-card font-mono">
+      <DialogContent className="max-w-xl rounded-[18px] border-0 bg-card font-sans">
         <DialogHeader>
           <DialogTitle className="font-head text-2xl font-light">Проверьте заказ</DialogTitle>
           <DialogDescription>После отправки заказ сразу уйдёт в 1С и появится у менеджера.</DialogDescription>
@@ -40,7 +40,7 @@ const ConfirmOrderDialog = ({ open, onOpenChange, qty, products, sending, onConf
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder="Комментарий к заказу: время доставки, адрес разгрузки…"
-          className="min-h-[70px] rounded-[10px] bg-pill p-3 text-sm outline-none ring-ocean focus:ring-2"
+          className="min-h-[70px] rounded-[18px] bg-pill p-3 text-sm outline-none ring-ocean focus:ring-2"
         />
         <div className="flex items-center justify-between gap-4">
           <div>
