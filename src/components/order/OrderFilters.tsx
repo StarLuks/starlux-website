@@ -1,5 +1,6 @@
 import { Category, rub } from "@/data/catalog";
 import { cn } from "@/lib/utils";
+import Icon from "@/components/ui/icon";
 
 interface Props {
   categories: Category[];
@@ -16,11 +17,16 @@ interface Props {
 const OrderFilters = ({ categories, category, onCategory, count, total, onSubmit, submitLabel = "Отправить в 1С →", search, onSearch }: Props) => {
   return (
     <section className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-[1.2fr_2fr_1fr]">
-      <h1 className="font-head text-[34px] font-light leading-[1.1] tracking-[-0.02em] md:text-[46px]">
-        Новый заказ
-        <br />
-        <mark className="bg-accent px-1.5 text-accent-foreground">СтарЛюкс</mark>
-      </h1>
+      <div className="tile relative flex min-h-[120px] flex-col justify-between overflow-hidden bg-gradient-to-br from-card via-card to-accent/60 p-5">
+        <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-ice/25 blur-2xl" />
+        <span className="relative grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-ice to-primary text-white shadow-lg shadow-primary/25">
+          <Icon name="ClipboardList" size={20} />
+        </span>
+        <div className="relative">
+          <h1 className="font-head text-2xl font-bold tracking-[-0.01em] text-foreground">Новый заказ</h1>
+          <p className="mt-0.5 text-[0.75em] text-muted-foreground">Выберите позиции и количество</p>
+        </div>
+      </div>
 
       <div className="tile">
         <div className="tile-label">Категория.</div>
