@@ -1,0 +1,29 @@
+import { useId } from "react";
+
+type Props = { size?: number; className?: string; plain?: boolean };
+
+const BrandMark = ({ size = 40, className, plain }: Props) => {
+  const id = useId().replace(/:/g, "");
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" className={className} aria-label="СтарЛюкс" role="img">
+      <defs>
+        <linearGradient id={`bg${id}`} x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#3cc4f5" />
+          <stop offset="1" stopColor="#0d3f86" />
+        </linearGradient>
+        <linearGradient id={`st${id}`} x1="32" y1="6" x2="32" y2="58" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="1" stopColor="#d9f3ff" />
+        </linearGradient>
+      </defs>
+      {!plain && <rect width="64" height="64" rx="18" fill={`url(#bg${id})`} />}
+      <path d="M32 14 L35.2 28.8 L50 32 L35.2 35.2 L32 50 L28.8 35.2 L14 32 L28.8 28.8 Z" transform="rotate(45 32 32)" fill="#bfeaff" opacity="0.55" />
+      <path d="M32 7 C33.6 22.5 41.5 30.4 57 32 C41.5 33.6 33.6 41.5 32 57 C30.4 41.5 22.5 33.6 7 32 C22.5 30.4 30.4 22.5 32 7 Z" fill={`url(#st${id})`} />
+      <path d="M32 7 C33.6 22.5 41.5 30.4 57 32 L32 32 Z" fill="#0d3f86" opacity="0.12" />
+      <path d="M32 57 C30.4 41.5 22.5 33.6 7 32 L32 32 Z" fill="#0d3f86" opacity="0.12" />
+      <circle cx="32" cy="32" r="3.2" fill="#3cc4f5" />
+    </svg>
+  );
+};
+
+export default BrandMark;
