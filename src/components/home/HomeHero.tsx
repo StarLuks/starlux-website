@@ -5,15 +5,14 @@ import Icon from "@/components/ui/icon";
 import { isStaff, usePortal } from "@/store/portal";
 import { api } from "@/lib/api";
 import { downloadBase64 } from "@/lib/nomenclature";
+import BrandMark from "@/components/brand/BrandMark";
 import { toast } from "@/hooks/use-toast";
 
 const HERO_IMG = "https://cdn.poehali.dev/projects/00ffe408-2a47-4771-a509-db88cbfc9021/files/8058a748-2660-47a6-a335-bf01c6a8a557.jpg";
 
 const Logo = () => (
   <Link to="/" className="flex items-center gap-2.5">
-    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-ice to-primary text-white shadow-lg shadow-primary/30">
-      <Icon name="Snowflake" size={20} />
-    </span>
+    <BrandMark size={42} className="shrink-0 drop-shadow-[0_6px_18px_rgba(60,196,245,0.35)]" />
     <span className="font-head text-lg font-extrabold uppercase leading-none tracking-[0.08em] text-white">
       Стар<span className="text-ice">Люкс</span>
     </span>

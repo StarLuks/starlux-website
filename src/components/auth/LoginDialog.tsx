@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import BrandMark from "@/components/brand/BrandMark";
 import { isStaff, usePortal } from "@/store/portal";
 
 interface Props {
@@ -52,7 +53,7 @@ const LoginDialog = ({ open, onOpenChange }: Props) => {
         <div className="relative overflow-hidden bg-gradient-to-br from-primary via-[#1d4f9c] to-ice px-8 pb-10 pt-9 text-white">
           <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/15 blur-2xl" />
           <div className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-ice/40 blur-3xl" />
-          <Icon name="Snowflake" size={120} className="pointer-events-none absolute -right-6 bottom-[-30px] text-white/10" />
+          <BrandMark size={150} plain className="pointer-events-none absolute -right-8 bottom-[-40px] opacity-15" />
           <span className="relative grid h-12 w-12 place-items-center rounded-2xl bg-white/15 backdrop-blur">
             <Icon name="LockKeyhole" size={22} />
           </span>

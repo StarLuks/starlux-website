@@ -1,6 +1,7 @@
 import { useState, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import Icon from "@/components/ui/icon";
+import BrandMark from "@/components/brand/BrandMark";
 import { cn } from "@/lib/utils";
 
 export interface NavItem {
@@ -46,8 +47,11 @@ const TopNav = ({ items, right }: Props) => {
   return (
     <nav className="relative flex items-center justify-between gap-3">
       <div className="flex items-center overflow-hidden rounded-full bg-card text-[0.8em]">
-        <Link to="/" className="border-r border-background px-[18px] py-3 font-head text-[1.1em] font-medium">
-          ★ СтарЛюкс
+        <Link to="/" className="mr-1 flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full py-1 pl-1 pr-4 font-head text-[15px] font-extrabold uppercase tracking-[0.04em] text-primary">
+          <BrandMark size={32} />
+          <span>
+            Стар<span className="text-[#1aa3dc]">Люкс</span>
+          </span>
         </Link>
         <div className="hidden md:flex">{items.map((it) => renderItem(it))}</div>
       </div>

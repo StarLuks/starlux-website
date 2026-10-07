@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import Icon from "@/components/ui/icon";
+import BrandMark from "@/components/brand/BrandMark";
 import { cn } from "@/lib/utils";
 
 export interface HeaderTab {
@@ -47,8 +48,11 @@ const PortalHeader = ({ roleLabel, userIcon = "UserRound", login, lastSync, onSy
 
     <div className="flex items-center gap-3">
       <nav className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto rounded-full bg-card p-1.5 [scrollbar-width:none]">
-        <Link to="/" className="mr-1 shrink-0 whitespace-nowrap rounded-full px-4 py-2 font-head text-[15px] font-semibold text-primary">
-          ★ СтарЛюкс
+        <Link to="/" className="mr-1 flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full py-1 pl-1 pr-4 font-head text-[15px] font-extrabold uppercase tracking-[0.04em] text-primary">
+          <BrandMark size={32} />
+          <span>
+            Стар<span className="text-[#1aa3dc]">Люкс</span>
+          </span>
         </Link>
         {tabs.map((t) => (
           <button
