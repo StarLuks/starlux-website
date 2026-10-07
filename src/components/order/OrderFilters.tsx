@@ -13,9 +13,10 @@ interface Props {
   search?: string;
   onSearch?: (s: string) => void;
   onClear?: () => void;
+  categoryLabel?: (c: Category) => string;
 }
 
-const OrderFilters = ({ categories, category, onCategory, count, total, onSubmit, submitLabel = "Отправить в 1С →", search, onSearch, onClear }: Props) => {
+const OrderFilters = ({ categories, category, onCategory, count, total, onSubmit, submitLabel = "Отправить в 1С →", search, onSearch, onClear, categoryLabel = (c) => c }: Props) => {
   return (
     <section className="grid grid-cols-1 items-stretch gap-2 md:gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]">
       <div className="tile relative flex items-center gap-3 overflow-hidden bg-gradient-to-br from-card via-card to-accent/60 px-5 py-3 max-md:hidden">
@@ -41,7 +42,7 @@ const OrderFilters = ({ categories, category, onCategory, count, total, onSubmit
             <SelectContent className="rounded-2xl">
               {categories.map((c) => (
                 <SelectItem key={c} value={c} className="rounded-xl py-2.5 font-head">
-                  {c}
+                  {categoryLabel(c)}
                 </SelectItem>
               ))}
             </SelectContent>

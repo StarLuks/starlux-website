@@ -27,6 +27,9 @@ type Tab = "catalog" | "orders";
 
 const CANCELABLE: OrderStatus[] = ["Новый", "Передан в 1С"];
 
+const ALL = "__all__";
+const draftKey = (uid?: number) => `starlux_draft_${uid ?? "anon"}`;
+
 const Cabinet = () => {
   const { ready, user, products, logout, lastSync, reloadCatalog } = usePortal();
   const navigate = useNavigate();
@@ -35,13 +38,38 @@ const Cabinet = () => {
   const [category, setCategory] = useState("");
   const [search, setSearch] = useState("");
   const [qty, setQty] = useState<Record<string, number>>({});
+  const [draftLoaded, setDraftLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    try {
+      const raw = localStorage.getItem(draftKey(user.id));
+      if (raw) {
+        const d = JSON.parse(raw) as { qty?: Record<string, number>; tab?: Tab };
+        if (d.qty && Object.values(d.qty).some((v) => v > 0)) {
+          setQty(d.qty);
+          setTab("catalog");
+        }
+      }
+    } catch {
+      localStorage.removeItem(draftKey(user.id));
+    }
+    setDraftLoaded(true);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !draftLoaded) return;
+    const clean = Object.fromEntries(Object.entries(qty).filter(([, v]) => v > 0));
+    if (Object.keys(clean).length) localStorage.setItem(draftKey(user.id), JSON.stringify({ qty: clean }));
+    else localStorage.removeItem(draftKey(user.id));
+  }, [qty, user, draftLoaded]);
   const [confirm, setConfirm] = useState(false);
   const [sending, setSending] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState<Order | null>(null);
 
-  const activeCat = category || categories[0] || "";
+  const activeCat = category || ALL;
 
   const [priceBusy, setPriceBusy] = useState(false);
   const [of, setOf] = useState<OrdersFilter>(EMPTY_FILTER);
@@ -89,6 +117,7 @@ const Cabinet = () => {
   const shown = useMemo(() => {
     const s = search.trim().toLowerCase();
     if (s) return products.filter((p) => p.name.toLowerCase().includes(s));
+    if (activeCat === ALL) return products;
     return products.filter((p) => p.category === activeCat);
   }, [products, activeCat, search]);
 
@@ -174,7 +203,8 @@ const Cabinet = () => {
         <>
           <div className="sticky top-0 z-30 -mx-4 -mt-2 animate-fade-in bg-background/85 px-4 py-2 backdrop-blur-md md:-mx-6 md:px-6">
             <OrderFilters
-              categories={categories}
+              categories={[ALL, ...categories]}
+              categoryLabel={(c) => (c === ALL ? "Все группы" : c)}
               category={activeCat}
               onCategory={(c) => {
                 setCategory(c);
@@ -193,7 +223,7 @@ const Cabinet = () => {
           </div>
           <PriceTable
             className="max-md:max-h-[70vh]"
-            label={search ? `Поиск · «${search}».` : `Прайс-лист · ${activeCat}.`}
+            label={search ? `Поиск · «${search}».` : `Прайс-лист · ${activeCat === ALL ? "все группы" : activeCat}.`}
             products={shown}
             qty={qty}
             onQty={(id, v) => setQty((q) => ({ ...q, [id]: v }))}
