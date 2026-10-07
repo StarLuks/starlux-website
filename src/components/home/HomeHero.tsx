@@ -22,7 +22,7 @@ const Logo = () => (
 
 const HomeHero = () => {
   const navigate = useNavigate();
-  const { user } = usePortal();
+  const { user, logout } = usePortal();
   const [priceBusy, setPriceBusy] = useState(false);
   const [menu, setMenu] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -89,14 +89,44 @@ const HomeHero = () => {
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={openCabinet}
-              className="flex items-center gap-2 rounded-full bg-white px-5 py-2.5 font-head text-sm font-semibold text-primary shadow-lg transition-transform hover:-translate-y-0.5"
-            >
-              <Icon name="LogIn" size={16} />
-              {user ? "Мой кабинет" : "Войти в кабинет"}
-            </button>
+            {user ? (
+              <>
+                <button
+                  type="button"
+                  onClick={openCabinet}
+                  className="flex items-center gap-2.5 rounded-full bg-white py-1.5 pl-1.5 pr-5 text-primary shadow-lg transition-transform hover:-translate-y-0.5"
+                >
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground">
+                    <Icon name={isStaff(user) ? "LayoutDashboard" : "Building2"} size={15} />
+                  </span>
+                  <span className="text-left leading-tight">
+                    <span className="block font-head text-sm font-semibold">В кабинет</span>
+                    <span className="block max-w-[140px] truncate text-[11px] text-primary/70 sm:max-w-[200px]">
+                      {isStaff(user) ? user.login : user.company}
+                    </span>
+                  </span>
+                  <Icon name="ArrowRight" size={16} className="hidden sm:block" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => logout()}
+                  aria-label="Выйти"
+                  title="Выйти"
+                  className="hidden h-10 w-10 place-items-center rounded-full bg-white/15 text-white backdrop-blur-md transition-colors hover:bg-white/25 sm:grid"
+                >
+                  <Icon name="LogOut" size={16} />
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={openCabinet}
+                className="flex items-center gap-2 rounded-full bg-white px-5 py-2.5 font-head text-sm font-semibold text-primary shadow-lg transition-transform hover:-translate-y-0.5"
+              >
+                <Icon name="LogIn" size={16} />
+                Войти в кабинет
+              </button>
+            )}
             <button
               type="button"
               aria-label="Меню"
