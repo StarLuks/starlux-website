@@ -120,27 +120,21 @@ const ImportExcelDialog = ({ open, onOpenChange, onImported }: Props) => {
         if (!v) reset();
       }}
     >
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto rounded-[24px]">
+      <DialogContent className="max-h-[94vh] max-w-lg gap-3 overflow-y-auto rounded-[24px] p-5">
         <DialogHeader>
           <DialogTitle className="font-head">Загрузка номенклатуры из Excel</DialogTitle>
-          <DialogDescription>
-            Товары ищутся по коду 1С, затем по артикулу и наименованию. Найденные обновятся, новые будут созданы. Новые
-            группы создадутся автоматически.
+          <DialogDescription className="text-xs">
+            Поиск по коду 1С, артикулу, наименованию. Найденные обновятся, новые — создадутся.
           </DialogDescription>
         </DialogHeader>
 
         <button
           type="button"
           onClick={template}
-          className="flex items-center gap-3 rounded-2xl bg-pill px-4 py-3 text-left text-sm transition-colors hover:bg-accent"
+          className="flex items-center gap-2 self-start text-sm font-medium text-primary hover:underline"
         >
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-card text-primary">
-            <Icon name="FileSpreadsheet" size={18} />
-          </span>
-          <span>
-            <b className="block font-medium">Скачать шаблон</b>
-            <span className="text-xs text-muted-foreground">В нём уже есть текущие товары и колонки для всех активных типов цен</span>
-          </span>
+          <Icon name="FileSpreadsheet" size={16} />
+          Скачать шаблон с текущими товарами
         </button>
 
         <div
@@ -156,18 +150,20 @@ const ImportExcelDialog = ({ open, onOpenChange, onImported }: Props) => {
           }}
           onClick={() => ref.current?.click()}
           className={cn(
-            "grid cursor-pointer place-items-center rounded-2xl border-2 border-dashed px-4 py-8 text-center transition-colors",
+            "flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed px-4 py-3 transition-colors",
             drag ? "border-primary bg-primary/5" : "border-border hover:border-ring"
           )}
         >
-          <Icon name={file ? "FileCheck2" : "Upload"} size={28} className={file ? "text-primary" : "text-muted-foreground"} />
-          <p className="mt-2 text-sm font-medium">{file ? file.name : "Перетащите файл .xlsx или нажмите для выбора"}</p>
-          {file && <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(0)} КБ</p>}
+          <Icon name={file ? "FileCheck2" : "Upload"} size={22} className={cn("shrink-0", file ? "text-primary" : "text-muted-foreground")} />
+          <span className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{file ? file.name : "Перетащите .xlsx или нажмите для выбора"}</p>
+            {file && <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(0)} КБ · нажмите, чтобы заменить</p>}
+          </span>
           <input ref={ref} type="file" accept=".xlsx" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
         </div>
 
         {preview && !result && (
-          <div className="space-y-3 rounded-2xl bg-pill p-4 text-sm">
+          <div className="space-y-2 rounded-2xl bg-pill p-3 text-sm">
             <div className="grid grid-cols-3 gap-2 text-center">
               {[
                 { k: "create", l: "Новых", v: preview.created, c: "text-emerald-600" },
@@ -179,9 +175,9 @@ const ImportExcelDialog = ({ open, onOpenChange, onImported }: Props) => {
                   type="button"
                   disabled={x.k === "err"}
                   onClick={() => setView(view === x.k ? "all" : (x.k as "create" | "update"))}
-                  className={cn("rounded-xl bg-card px-2 py-2 transition", view === x.k && "ring-2 ring-ring")}
+                  className={cn("flex items-baseline justify-center gap-1.5 rounded-xl bg-card px-2 py-1.5 transition", view === x.k && "ring-2 ring-ring")}
                 >
-                  <b className={cn("block font-head text-xl", x.c)}>{x.v}</b>
+                  <b className={cn("font-head text-lg", x.c)}>{x.v}</b>
                   <span className="text-xs text-muted-foreground">{x.l}</span>
                 </button>
               ))}
@@ -227,14 +223,14 @@ const ImportExcelDialog = ({ open, onOpenChange, onImported }: Props) => {
             </div>
 
             {preview.errors.length > 0 && (
-              <ul className="max-h-28 space-y-1 overflow-y-auto rounded-xl bg-destructive/5 p-2 text-xs text-destructive">
+              <ul className="max-h-20 space-y-1 overflow-y-auto rounded-xl bg-destructive/5 p-2 text-xs text-destructive">
                 {preview.errors.map((e) => (
                   <li key={e}>• {e}</li>
                 ))}
               </ul>
             )}
 
-            <div className="max-h-48 overflow-y-auto rounded-xl bg-card">
+            <div className="max-h-[22vh] overflow-y-auto rounded-xl bg-card">
               {preview.preview
                 .filter((p) => view === "all" || p.action === view)
                 .map((p) => (
