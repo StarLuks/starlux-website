@@ -6,6 +6,7 @@ import NewClientDialog from "@/components/manager/NewClientDialog";
 import ClientCard from "@/components/manager/ClientCard";
 import NomenclatureSection from "@/components/manager/NomenclatureSection";
 import PriceTypesSection from "@/components/manager/PriceTypesSection";
+import OrdersFilterBar, { EMPTY_FILTER, OrdersFilter } from "@/components/manager/OrdersFilterBar";
 import { Client, Order, OrderStatus, STATUSES, isStaff, usePortal } from "@/store/portal";
 import { downloadPriceList, rub } from "@/data/catalog";
 import { api } from "@/lib/api";
@@ -19,7 +20,7 @@ const Manager = () => {
   const { ready, user, products, logout, lastSync, reloadCatalog } = usePortal();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("orders");
-  const [filter, setFilter] = useState<OrderStatus | "Все">("Все");
+  const [of, setOf] = useState<OrdersFilter>(EMPTY_FILTER);
   const [q, setQ] = useState("");
   const [newClient, setNewClient] = useState(false);
   const [editClient, setEditClient] = useState<Client | null>(null);
@@ -44,11 +45,24 @@ const Manager = () => {
   }, [user, load]);
 
   const filteredOrders = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    return orders
-      .filter((o) => filter === "Все" || o.status === filter)
-      .filter((o) => !s || o.number.toLowerCase().includes(s) || o.clientName.toLowerCase().includes(s));
-  }, [orders, filter, q]);
+    const s = of.q.trim().toLowerCase();
+    const from = of.range?.from ? new Date(of.range.from).setHours(0, 0, 0, 0) : null;
+    const to = of.range?.from ? new Date(of.range.to ?? of.range.from).setHours(23, 59, 59, 999) : null;
+    return orders.filter((o) => {
+      if (of.statuses.length && !of.statuses.includes(o.status)) return false;
+      if (of.clientId !== null && o.clientId !== of.clientId) return false;
+      const t = new Date(o.date).getTime();
+      if (from !== null && t < from) return false;
+      if (to !== null && t > to) return false;
+      return !s || o.number.toLowerCase().includes(s);
+    });
+  }, [orders, of]);
+
+  const statusCounts = useMemo(() => {
+    const m: Record<string, number> = {};
+    orders.forEach((o) => (m[o.status] = (m[o.status] ?? 0) + 1));
+    return m;
+  }, [orders]);
 
   const filteredClients = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -156,26 +170,19 @@ const Manager = () => {
         </div>
 
         <div className="tile">
-          <div className="tile-label">{tab === "orders" ? "Статус." : "Поиск."}</div>
+          <div className="tile-label">{tab === "orders" ? "Отбор." : "Поиск."}</div>
+          {tab === "orders" ? (
+            <OrdersFilterBar value={of} onChange={setOf} clients={clients} counts={statusCounts} />
+          ) : (
           <div className="flex flex-wrap gap-2 px-[18px] pb-4">
-            {tab === "orders" &&
-              (["Все", ...STATUSES] as const).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setFilter(s)}
-                  className={cn("pill transition-colors", filter === s ? "bg-primary text-primary-foreground" : "hover:bg-accent")}
-                >
-                  {s}
-                </button>
-              ))}
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder={tab === "orders" ? "№ заказа или клиент…" : "Название, ИНН или логин…"}
+              placeholder="Название, ИНН или логин…"
               className="pill min-w-[180px] flex-1 bg-background/50 outline-none placeholder:text-muted-foreground"
             />
           </div>
+          )}
         </div>
 
         {tab === "orders" ? (
@@ -202,7 +209,12 @@ const Manager = () => {
       <section className="tile min-h-0 overflow-y-auto">
         {tab === "orders" ? (
           <>
-            <div className="tile-label">Все заказы клиентов.</div>
+            <div className="tile-label flex items-center justify-between gap-3">
+              <span>Заказы клиентов.</span>
+              <span className="normal-case tracking-normal">
+                Найдено: {filteredOrders.length} · на сумму {rub(filteredOrders.reduce((sum, o) => sum + Number(o.total), 0))}
+              </span>
+            </div>
             <OrdersList
               orders={filteredOrders}
               showClient={(o) => o.clientName}
