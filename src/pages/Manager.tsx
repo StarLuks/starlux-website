@@ -52,7 +52,7 @@ const Manager = () => {
   }, [clients, q]);
 
   if (!ready) return <div className="grid min-h-screen place-items-center text-muted-foreground">Загрузка…</div>;
-  if (!isStaff(user)) return <Navigate to="/login" replace />;
+  if (!isStaff(user)) return <Navigate to="/" replace state={{ login: true }} />;
 
   const today = new Date().toDateString();
   const todayOrders = orders.filter((o) => new Date(o.date).toDateString() === today);

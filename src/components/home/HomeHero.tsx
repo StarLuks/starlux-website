@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import LoginDialog from "@/components/auth/LoginDialog";
 import Icon from "@/components/ui/icon";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { isStaff, usePortal } from "@/store/portal";
@@ -26,7 +27,20 @@ const HomeHero = () => {
   const { user, products } = usePortal();
   const [modal, setModal] = useState<Modal>(null);
   const [menu, setMenu] = useState(false);
-  const cabinetHref = user ? (isStaff(user) ? "/manager" : "/cabinet") : "/login";
+  const [loginOpen, setLoginOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    if ((location.state as { login?: boolean } | null)?.login) {
+      setLoginOpen(true);
+      navigate(".", { replace: true, state: null });
+    }
+  }, [location.state, navigate]);
+
+  const openCabinet = () => {
+    if (user) navigate(isStaff(user) ? "/manager" : "/cabinet");
+    else setLoginOpen(true);
+  };
 
   const price = () => {
     if (user && products.length) {
@@ -34,7 +48,7 @@ const HomeHero = () => {
       return;
     }
     toast({ title: "Прайс-лист доступен клиентам", description: "Войдите в кабинет, чтобы скачать актуальные цены и остатки." });
-    navigate("/login");
+    setLoginOpen(true);
   };
 
   const links = [
@@ -68,7 +82,7 @@ const HomeHero = () => {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => navigate(cabinetHref)}
+              onClick={openCabinet}
               className="flex items-center gap-2 rounded-full bg-white px-5 py-2.5 font-head text-sm font-semibold text-primary shadow-lg transition-transform hover:-translate-y-0.5"
             >
               <Icon name="LogIn" size={16} />
@@ -117,6 +131,8 @@ const HomeHero = () => {
           </p>
         </div>
       </div>
+
+      <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
 
       <Dialog open={modal !== null} onOpenChange={(v) => !v && setModal(null)}>
         <DialogContent className="max-w-lg rounded-[24px] border-0 bg-card">

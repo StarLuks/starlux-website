@@ -59,7 +59,7 @@ const Cabinet = () => {
   }, [products, activeCat, search]);
 
   if (!ready) return <div className="grid min-h-screen place-items-center text-muted-foreground">Загрузка…</div>;
-  if (!user || user.role !== "client") return <Navigate to="/login" replace />;
+  if (!user || user.role !== "client") return <Navigate to="/" replace state={{ login: true }} />;
 
   const picked = products.filter((p) => (qty[p.id] ?? 0) > 0);
   const total = picked.reduce((s, p) => s + boxPrice(p) * qty[p.id], 0);
