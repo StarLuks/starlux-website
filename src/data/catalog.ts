@@ -8,6 +8,7 @@ export interface Product {
   packKg: number;
   price: number;
   stock: number;
+  unit?: string;
 }
 
 export const categoriesOf = (products: Product[]): Category[] => Array.from(new Set(products.map((p) => p.category)));

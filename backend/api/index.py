@@ -81,7 +81,7 @@ def touch_sync(cur):
 
 
 def products(cur):
-    q(cur, "SELECT id, name, category, pack, pack_kg AS \"packKg\", price, stock FROM {S}.products "
+    q(cur, "SELECT id, name, category, pack, pack_kg AS \"packKg\", price, stock, unit FROM {S}.products "
            "WHERE active ORDER BY sort, name")
     return cur.fetchall()
 
@@ -121,12 +121,12 @@ def handle_1c(cur, action, body, headers, all_orders=False):
     if action == '1c_products':
         rows = body.get('products', [])
         for i, p in enumerate(rows):
-            q(cur, "INSERT INTO {S}.products (id, name, category, pack, pack_kg, price, stock, sort, active, updated_at) "
-                   "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW()) ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, "
+            q(cur, "INSERT INTO {S}.products (id, name, category, pack, pack_kg, price, stock, sort, active, unit, updated_at) "
+                   "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW()) ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, unit=EXCLUDED.unit, "
                    "category=EXCLUDED.category, pack=EXCLUDED.pack, pack_kg=EXCLUDED.pack_kg, price=EXCLUDED.price, "
                    "stock=EXCLUDED.stock, sort=EXCLUDED.sort, active=EXCLUDED.active, updated_at=NOW()",
               (str(p['id']), p['name'], p.get('category', 'Прочее'), p.get('pack', ''), p.get('packKg', 1),
-               p.get('price', 0), p.get('stock', 0), p.get('sort', i), p.get('active', True)))
+               p.get('price', 0), p.get('stock', 0), p.get('sort', i), p.get('active', True), p.get('unit', 'кор.')))
         if body.get('full'):
             ids = tuple(str(p['id']) for p in rows) or ('',)
             q(cur, "UPDATE {S}.products SET active = FALSE WHERE id NOT IN %s", (ids,))
@@ -224,10 +224,13 @@ def handler(event: dict, context) -> dict:
             wanted = {str(i['productId']): int(i['qty']) for i in body.get('items', []) if int(i.get('qty', 0)) > 0}
             if not wanted:
                 return resp(400, {'error': 'Заказ пуст'})
-            q(cur, "SELECT id, name, pack_kg, price FROM {S}.products WHERE active AND id IN %s", (tuple(wanted),))
+            q(cur, "SELECT id, name, pack_kg, price, stock, unit FROM {S}.products WHERE active AND id IN %s", (tuple(wanted),))
             rows = cur.fetchall()
             if not rows:
                 return resp(400, {'error': 'Товары не найдены'})
+            over = [f"{p['name']} — доступно {p['stock']} {p['unit']}" for p in rows if wanted[p['id']] > p['stock']]
+            if over:
+                return resp(409, {'error': 'Недостаточно остатка: ' + '; '.join(over)})
             lines = []
             for p in rows:
                 bp = round(Decimal(p['price']) * Decimal(p['pack_kg']))
@@ -240,6 +243,7 @@ def handler(event: dict, context) -> dict:
             number = 'СЛ-' + str(2000 + oid)
             q(cur, "UPDATE {S}.orders SET number = %s WHERE id = %s", (number, oid))
             for l in lines:
+                q(cur, "UPDATE {S}.products SET stock = stock - %s WHERE id = %s", (l[2], l[0]))
                 q(cur, "INSERT INTO {S}.order_items (order_id, product_id, name, qty, box_price, sum) VALUES (%s,%s,%s,%s,%s,%s)",
                   (oid, *l))
             return resp(200, {'id': oid, 'number': number, 'total': total})

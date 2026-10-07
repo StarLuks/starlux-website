@@ -1,19 +1,27 @@
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 interface Props {
   value: number;
   onChange: (v: number) => void;
   max?: number;
+  disabled?: boolean;
 }
 
-const QtyControl = ({ value, onChange, max = 9999 }: Props) => {
+const QtyControl = ({ value, onChange, max = 9999, disabled }: Props) => {
   const active = value > 0;
-  const set = (v: number) => onChange(Math.max(0, Math.min(max, v)));
+  const set = (v: number) => {
+    if (v > max) {
+      toast({ title: "Больше нет в наличии", description: `Доступно для заказа: ${max}` });
+    }
+    onChange(Math.max(0, Math.min(max, v)));
+  };
   return (
     <div
       className={cn(
         "flex items-center justify-between rounded-full px-2 py-1.5 transition-colors",
-        active ? "bg-accent text-accent-foreground" : "bg-pill"
+        active ? "bg-accent text-accent-foreground" : "bg-pill",
+        disabled && "pointer-events-none opacity-40"
       )}
     >
       <button
@@ -36,7 +44,8 @@ const QtyControl = ({ value, onChange, max = 9999 }: Props) => {
         type="button"
         aria-label="Увеличить"
         onClick={() => set(value + 1)}
-        className="grid h-[22px] w-[22px] place-items-center rounded-full bg-card text-foreground transition-transform hover:scale-110 active:scale-95"
+        disabled={value >= max}
+        className="disabled:opacity-40 grid h-[22px] w-[22px] place-items-center rounded-full bg-card text-foreground transition-transform hover:scale-110 active:scale-95"
       >
         +
       </button>

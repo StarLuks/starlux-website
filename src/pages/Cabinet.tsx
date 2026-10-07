@@ -70,9 +70,11 @@ const Cabinet = () => {
       setQty({});
       setTab("orders");
       loadOrders();
+      reloadCatalog();
       toast({ title: `Заказ ${o.number} принят`, description: `Сумма ${rub(o.total)}. Заказ передаётся в 1С.` });
     } catch (e) {
       toast({ title: "Не удалось отправить заказ", description: (e as Error).message });
+      reloadCatalog();
     } finally {
       setSending(false);
     }
@@ -171,7 +173,13 @@ const Cabinet = () => {
                   type="button"
                   className="pill bg-card hover:bg-accent"
                   onClick={() => {
-                    setQty(Object.fromEntries(o.items.filter((i) => products.some((p) => p.id === i.productId)).map((i) => [i.productId, i.qty])));
+                    setQty(
+                      Object.fromEntries(
+                        o.items
+                          .map((i) => [i.productId, Math.min(i.qty, products.find((p) => p.id === i.productId)?.stock ?? 0)] as const)
+                          .filter(([, v]) => v > 0)
+                      )
+                    );
                     setTab("catalog");
                     toast({ title: "Позиции добавлены", description: `Состав заказа ${o.number} перенесён в новый заказ.` });
                   }}
