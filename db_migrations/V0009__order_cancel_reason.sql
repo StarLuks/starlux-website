@@ -1,0 +1,1 @@
+ALTER TABLE t_p16770056_starlux_website.orders ADD COLUMN IF NOT EXISTS cancel_reason TEXT;

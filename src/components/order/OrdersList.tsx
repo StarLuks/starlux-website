@@ -179,6 +179,14 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                 </div>
                 )}
                 {o.comment && <p className="mt-3 text-[0.8em] text-muted-foreground">Комментарий: {o.comment}</p>}
+                {o.cancelReason && (
+                  <div className="mt-3 flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-[0.8em]">
+                    <Icon name="CircleX" size={15} className="mt-0.5 shrink-0 text-destructive" />
+                    <p className="whitespace-pre-line">
+                      <b className="text-destructive">Причина отмены:</b> {o.cancelReason}
+                    </p>
+                  </div>
+                )}
                 {actions && <div className="mt-4 flex flex-wrap gap-2">{actions(o)}</div>}
               </div>
             )}

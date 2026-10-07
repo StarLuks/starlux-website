@@ -15,6 +15,8 @@ interface Props {
   text?: ReactNode;
   yesLabel?: string;
   noLabel?: string;
+  children?: ReactNode;
+  canConfirm?: boolean;
 }
 
 const ClearOrderDialog = ({
@@ -27,6 +29,8 @@ const ClearOrderDialog = ({
   text,
   yesLabel = "Да, очистить",
   noLabel = "Нет",
+  children,
+  canConfirm = true,
 }: Props) => (
   <AlertDialog open={open} onOpenChange={onOpenChange}>
     <AlertDialogContent className="max-h-[92vh] w-[calc(100%-2rem)] max-w-sm gap-0 overflow-y-auto rounded-[28px] border-0 p-0 shadow-2xl">
@@ -51,6 +55,7 @@ const ClearOrderDialog = ({
           )}
         </AlertDialogDescription>
       </div>
+      {children && <div className="px-6 pt-4">{children}</div>}
       <div className="grid grid-cols-2 gap-3 p-6 pt-4">
         <button
           type="button"
@@ -62,11 +67,12 @@ const ClearOrderDialog = ({
         </button>
         <button
           type="button"
+          disabled={!canConfirm}
           onClick={() => {
             onConfirm();
             onOpenChange(false);
           }}
-          className="h-11 rounded-full bg-pill font-head text-sm font-semibold text-foreground transition hover:bg-destructive hover:text-destructive-foreground"
+          className="h-11 rounded-full bg-pill disabled:pointer-events-none disabled:opacity-50 font-head text-sm font-semibold text-foreground transition hover:bg-destructive hover:text-destructive-foreground"
         >
           {yesLabel}
         </button>

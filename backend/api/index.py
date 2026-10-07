@@ -117,7 +117,7 @@ def load_orders(cur, client_id=None, only_new=False):
         where.append('NOT o.exported_1c')
     w = ('WHERE ' + ' AND '.join(where)) if where else ''
     q(cur, "SELECT o.id, o.number, o.client_id AS \"clientId\", u.company AS \"clientName\", u.inn AS \"clientInn\", "
-           "u.ext_id AS \"clientExtId\", o.status, o.total, o.comment, o.exported_1c AS \"exported\", "
+           "u.ext_id AS \"clientExtId\", o.status, o.total, o.comment, o.cancel_reason AS \"cancelReason\", o.exported_1c AS \"exported\", "
            "o.address_name AS \"address\", a.code_1c AS \"addressCode1c\", "
            "o.price_type_name AS \"priceTypeName\", COALESCE(t.code_1c, '') AS \"priceTypeCode1c\", "
            "o.created_at AS date FROM {S}.orders o JOIN {S}.users u ON u.id = o.client_id "
@@ -407,9 +407,13 @@ def handler(event: dict, context) -> dict:
                 return resp(409, {'error': 'Заказ уже отменён'})
             if o['status'] not in ('Новый', 'Передан в 1С'):
                 return resp(409, {'error': 'Заказ уже собирается — для отмены свяжитесь с менеджером'})
+            reason = (body.get('reason') or '').strip()[:1000]
+            if not reason:
+                return resp(400, {'error': 'Укажите причину отмены'})
             err = change_status(cur, oid, 'Отменён')
             if err:
                 return resp(409, {'error': err})
+            q(cur, "UPDATE {S}.orders SET cancel_reason = %s WHERE id = %s", (reason, oid))
             return resp(200, {'ok': True})
 
         if not staff:

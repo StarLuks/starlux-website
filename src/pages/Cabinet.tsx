@@ -60,6 +60,7 @@ const Cabinet = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState<Order | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
 
   const activeCat = category || ALL;
 
@@ -157,7 +158,7 @@ const Cabinet = () => {
     setCancelling(null);
     if (!o) return;
     try {
-      await api("cancel_order", { orderId: o.id });
+      await api("cancel_order", { orderId: o.id, reason: cancelReason.trim() });
       toast({ title: `Заказ ${o.number} отменён`, description: "Товар возвращён на склад." });
     } catch (e) {
       toast({ title: "Не удалось отменить заказ", description: (e as Error).message });
@@ -297,7 +298,10 @@ const Cabinet = () => {
                 {CANCELABLE.includes(o.status) && (
                   <button
                     type="button"
-                    onClick={() => setCancelling(o)}
+                    onClick={() => {
+                      setCancelReason("");
+                      setCancelling(o);
+                    }}
                     className="pill flex items-center gap-1.5 bg-card text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
                   >
                     <Icon name="X" size={14} />
@@ -325,7 +329,34 @@ const Cabinet = () => {
         }
         noLabel="Не отменять"
         yesLabel="Да, отменить"
-      />
+        canConfirm={cancelReason.trim().length > 0}
+      >
+        <label className="block text-left">
+          <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
+            Причина отмены <span className="text-destructive">*</span>
+          </span>
+          <textarea
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            rows={3}
+            maxLength={1000}
+            placeholder="Например: ошиблись с количеством, изменились планы…"
+            className="w-full resize-none rounded-xl border border-border bg-pill px-3.5 py-2.5 text-sm outline-none transition focus:border-ring focus:bg-card focus:ring-4 focus:ring-ring/15"
+          />
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {["Ошиблись в заказе", "Изменились планы", "Нашли дешевле", "Долгая доставка"].map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setCancelReason(r)}
+                className="rounded-full bg-pill px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        </label>
+      </ClearOrderDialog>
 
       <ClearOrderDialog
         open={clearOpen}

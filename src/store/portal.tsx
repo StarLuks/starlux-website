@@ -49,6 +49,7 @@ export interface Order {
   total: number;
   status: OrderStatus;
   comment?: string;
+  cancelReason?: string | null;
   address?: string | null;
   priceTypeName?: string | null;
 }
