@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import TopNav from "@/components/layout/TopNav";
 import OrdersList from "@/components/order/OrdersList";
 import NewClientDialog from "@/components/manager/NewClientDialog";
+import ClientCard from "@/components/manager/ClientCard";
 import NomenclatureSection from "@/components/manager/NomenclatureSection";
 import PriceTypesSection from "@/components/manager/PriceTypesSection";
 import { Client, Order, OrderStatus, STATUSES, isStaff, usePortal } from "@/store/portal";
@@ -21,6 +22,7 @@ const Manager = () => {
   const [filter, setFilter] = useState<OrderStatus | "Все">("Все");
   const [q, setQ] = useState("");
   const [newClient, setNewClient] = useState(false);
+  const [editClient, setEditClient] = useState<Client | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -221,13 +223,13 @@ const Manager = () => {
         ) : (
           <>
             <div className="tile-label">Учётные записи клиентов.</div>
-            <div className="hidden h-[34px] items-center gap-3 px-[22px] text-[0.72em] text-muted-foreground md:grid md:grid-cols-[2fr_130px_1.4fr_110px_100px_140px]">
+            <div className="hidden h-[34px] items-center gap-3 px-[22px] text-[0.72em] text-muted-foreground md:grid md:grid-cols-[2fr_120px_1.3fr_130px_90px_150px]">
               <span>Организация</span>
               <span>ИНН</span>
               <span>Контакт</span>
-              <span>Логин</span>
+              <span>Тип цен</span>
               <span>Заказов</span>
-              <span>Доступ</span>
+              <span />
             </div>
             {filteredClients.length === 0 && (
               <div className="border-t border-border px-[22px] py-10 text-center text-sm text-muted-foreground">
@@ -238,7 +240,7 @@ const Manager = () => {
               <div
                 key={c.id}
                 className={cn(
-                  "grid grid-cols-2 items-center gap-x-3 gap-y-1 border-t border-border px-4 py-3 text-[0.85em] md:min-h-12 md:grid-cols-[2fr_130px_1.4fr_110px_100px_140px] md:px-[22px] md:py-2",
+                  "grid grid-cols-2 items-center gap-x-3 gap-y-1 border-t border-border px-4 py-3 text-[0.85em] md:min-h-12 md:grid-cols-[2fr_120px_1.3fr_130px_90px_150px] md:px-[22px] md:py-2",
                   c.blocked && "text-muted-foreground"
                 )}
               >
@@ -251,18 +253,34 @@ const Manager = () => {
                   {c.contact}
                   <span className="block text-[0.85em]">{c.phone}</span>
                 </span>
-                <span>{c.login}</span>
+                <span className="text-muted-foreground">
+                  <span className={cn(c.priceTypeName && "font-medium text-foreground")}>{c.priceTypeName ?? "основной"}</span>
+                  <span className="block text-[0.85em]">
+                    {c.login} · адресов {c.addressesCount ?? 0}
+                  </span>
+                </span>
                 <span className="max-md:text-right">{c.ordersCount ?? 0}</span>
+                <span className="col-span-2 flex items-center gap-1.5 md:col-span-1">
+                <button
+                  type="button"
+                  onClick={() => setEditClient(c)}
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-pill transition-colors hover:bg-primary hover:text-primary-foreground"
+                  aria-label="Редактировать"
+                  title="Редактировать"
+                >
+                  <Icon name="Pencil" size={15} />
+                </button>
                 <button
                   type="button"
                   onClick={() => toggleBlock(c)}
                   className={cn(
-                    "pill col-span-2 transition-colors md:col-span-1",
+                    "pill flex-1 transition-colors",
                     c.blocked ? "bg-accent text-accent-foreground hover:opacity-85" : "hover:bg-destructive hover:text-destructive-foreground"
                   )}
                 >
                   {c.blocked ? "Разблокировать" : "Заблокировать"}
                 </button>
+                </span>
               </div>
             ))}
           </>
@@ -270,6 +288,7 @@ const Manager = () => {
       </section>
       )}
 
+      <ClientCard client={editClient} onClose={() => setEditClient(null)} onSaved={load} />
       <NewClientDialog open={newClient} onOpenChange={setNewClient} onCreated={load} />
     </main>
   );

@@ -68,6 +68,11 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                     );
                   })}
                 </div>
+                {o.address && (
+                  <p className="mt-3 flex items-center gap-1.5 text-[0.8em]">
+                    <Icon name="MapPin" size={14} className="text-primary" /> {o.address}
+                  </p>
+                )}
                 {o.comment && <p className="mt-3 text-[0.8em] text-muted-foreground">Комментарий: {o.comment}</p>}
                 {actions && <div className="mt-4 flex flex-wrap gap-2">{actions(o)}</div>}
               </div>

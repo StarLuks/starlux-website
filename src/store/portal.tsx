@@ -15,6 +15,9 @@ export interface User {
   blocked: boolean;
   createdAt: string;
   ordersCount?: number;
+  addressesCount?: number;
+  priceTypeId?: number | null;
+  priceTypeName?: string | null;
 }
 
 export type Client = User;
@@ -41,6 +44,7 @@ export interface Order {
   total: number;
   status: OrderStatus;
   comment?: string;
+  address?: string | null;
 }
 
 export const isStaff = (u: User | null) => !!u && (u.role === "manager" || u.role === "admin");

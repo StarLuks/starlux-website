@@ -69,7 +69,17 @@ def current_user(cur, headers):
 def public_user(u):
     return {'id': u['id'], 'role': u['role'], 'login': u['login'], 'company': u['company'],
             'inn': u['inn'], 'contact': u['contact'], 'phone': u['phone'], 'blocked': u['blocked'],
-            'createdAt': u['created_at']}
+            'createdAt': u['created_at'], 'priceTypeId': u.get('price_type_id')}
+
+
+def client_price_type(cur, user):
+    """Активный тип цены клиента; если не назначен или отключён — основной."""
+    if user and user.get('role') == 'client' and user.get('price_type_id'):
+        q(cur, "SELECT id FROM {S}.price_types WHERE id = %s AND active", (user['price_type_id'],))
+        r = cur.fetchone()
+        if r:
+            return r['id']
+    return None
 
 
 def last_sync(cur):
@@ -82,9 +92,10 @@ def touch_sync(cur):
     q(cur, "UPDATE {S}.settings SET value = to_char(NOW(), 'YYYY-MM-DD\"T\"HH24:MI:SS') WHERE key = 'last_sync'")
 
 
-def products(cur):
-    q(cur, "SELECT id, name, category, pack, pack_kg AS \"packKg\", price, stock, unit FROM {S}.products "
-           "WHERE active ORDER BY sort, name")
+def products(cur, price_type_id=None):
+    q(cur, "SELECT p.id, p.name, p.category, p.pack, p.pack_kg AS \"packKg\", COALESCE(pp.price, p.price) AS price, "
+           "p.stock, p.unit FROM {S}.products p LEFT JOIN {S}.product_prices pp ON pp.product_id = p.id AND pp.price_type_id = %s "
+           "WHERE p.active ORDER BY p.sort, p.name", (price_type_id or 0,))
     rows = cur.fetchall()
     q(cur, "SELECT i.product_id, i.url FROM {S}.product_images i JOIN {S}.products p ON p.id = i.product_id "
            "WHERE p.active ORDER BY i.is_main DESC, i.sort, i.id")
@@ -106,7 +117,9 @@ def load_orders(cur, client_id=None, only_new=False):
     w = ('WHERE ' + ' AND '.join(where)) if where else ''
     q(cur, "SELECT o.id, o.number, o.client_id AS \"clientId\", u.company AS \"clientName\", u.inn AS \"clientInn\", "
            "u.ext_id AS \"clientExtId\", o.status, o.total, o.comment, o.exported_1c AS \"exported\", "
+           "o.address_name AS \"address\", a.code_1c AS \"addressCode1c\", "
            "o.created_at AS date FROM {S}.orders o JOIN {S}.users u ON u.id = o.client_id "
+           "LEFT JOIN {S}.delivery_addresses a ON a.id = o.address_id "
            + w + " ORDER BY o.created_at DESC LIMIT 500", tuple(args))
     orders = cur.fetchall()
     if not orders:
@@ -150,6 +163,22 @@ def change_status(cur, order_id, new_status):
     return None
 
 
+def sync_client_extra(cur, client_id, c):
+    """Тип цены и адреса доставки клиента из 1С (по кодам 1С)."""
+    if c.get('priceTypeCode'):
+        q(cur, "UPDATE {S}.users SET price_type_id = (SELECT id FROM {S}.price_types WHERE code_1c = %s LIMIT 1) WHERE id = %s",
+          (str(c['priceTypeCode']), client_id))
+    for a in c.get('addresses') or []:
+        code = str(a.get('code1c') or '').strip()
+        if not code or not a.get('name'):
+            continue
+        q(cur, "UPDATE {S}.delivery_addresses SET name=%s, active=%s WHERE client_id=%s AND code_1c=%s RETURNING id",
+          (a['name'], a.get('active', True), client_id, code))
+        if not cur.fetchone():
+            q(cur, "INSERT INTO {S}.delivery_addresses (client_id, name, code_1c, active) VALUES (%s,%s,%s,%s)",
+              (client_id, a['name'], code, a.get('active', True)))
+
+
 def handle_1c(cur, action, body, headers, all_orders=False):
     key = os.environ.get('ONEC_API_KEY')
     given = headers.get('X-Api-Key') or headers.get('x-api-key')
@@ -188,12 +217,17 @@ def handle_1c(cur, action, body, headers, all_orders=False):
             if ex:
                 q(cur, "UPDATE {S}.users SET company=%s, inn=%s, contact=%s, phone=%s, blocked=%s, ext_id=%s WHERE id=%s",
                   (c['company'], c.get('inn', ''), c.get('contact', ''), c.get('phone', ''), c.get('blocked', False), ext, ex['id']))
+                sync_client_extra(cur, ex['id'], c)
             elif c.get('login') and c.get('password'):
                 q(cur, "INSERT INTO {S}.users (role, login, password_hash, company, inn, contact, phone, ext_id, blocked) "
                        "VALUES ('client',%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (login) DO NOTHING",
                   (c['login'], hash_pw(c['password']), c['company'], c.get('inn', ''), c.get('contact', ''),
                    c.get('phone', ''), ext, c.get('blocked', False)))
                 created.append(c['login'])
+                q(cur, "SELECT id FROM {S}.users WHERE login = %s", (c['login'],))
+                nu = cur.fetchone()
+                if nu:
+                    sync_client_extra(cur, nu['id'], c)
         touch_sync(cur)
         return resp(200, {'ok': True, 'count': len(rows), 'created': created})
 
@@ -253,7 +287,11 @@ def handler(event: dict, context) -> dict:
         staff = user['role'] in STAFF
 
         if action == 'catalog':
-            return resp(200, {'products': products(cur), 'lastSync': last_sync(cur)})
+            return resp(200, {'products': products(cur, client_price_type(cur, user)), 'lastSync': last_sync(cur)})
+
+        if action == 'my_addresses':
+            q(cur, "SELECT id, name FROM {S}.delivery_addresses WHERE client_id = %s AND active ORDER BY name", (user['id'],))
+            return resp(200, {'addresses': cur.fetchall()})
 
         if action == 'me':
             return resp(200, {'user': public_user(user)})
@@ -272,7 +310,15 @@ def handler(event: dict, context) -> dict:
             wanted = {str(i['productId']): int(i['qty']) for i in body.get('items', []) if int(i.get('qty', 0)) > 0}
             if not wanted:
                 return resp(400, {'error': 'Заказ пуст'})
-            q(cur, "SELECT id, name, pack_kg, price, stock, unit FROM {S}.products WHERE active AND id IN %s", (tuple(wanted),))
+            q(cur, "SELECT id, name FROM {S}.delivery_addresses WHERE client_id = %s AND active", (user['id'],))
+            addrs = {a['id']: a['name'] for a in cur.fetchall()}
+            addr_id = body.get('addressId')
+            if addrs and (not addr_id or int(addr_id) not in addrs):
+                return resp(400, {'error': 'Выберите адрес доставки'})
+            addr_id = int(addr_id) if addrs else None
+            q(cur, "SELECT p.id, p.name, p.pack_kg, COALESCE(pp.price, p.price) AS price, p.stock, p.unit FROM {S}.products p "
+                   "LEFT JOIN {S}.product_prices pp ON pp.product_id = p.id AND pp.price_type_id = %s "
+                   "WHERE p.active AND p.id IN %s", (client_price_type(cur, user) or 0, tuple(wanted)))
             rows = cur.fetchall()
             if not rows:
                 return resp(400, {'error': 'Товары не найдены'})
@@ -285,8 +331,9 @@ def handler(event: dict, context) -> dict:
                 lines.append((p['id'], p['name'], wanted[p['id']], bp, bp * wanted[p['id']]))
             total = sum(l[4] for l in lines)
             comment = (body.get('comment') or '').strip()[:1000] or None
-            q(cur, "INSERT INTO {S}.orders (number, client_id, total, comment) VALUES (%s, %s, %s, %s) RETURNING id",
-              ('tmp-' + secrets.token_hex(6), user['id'], total, comment))
+            q(cur, "INSERT INTO {S}.orders (number, client_id, total, comment, address_id, address_name) "
+                   "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+              ('tmp-' + secrets.token_hex(6), user['id'], total, comment, addr_id, addrs.get(addr_id)))
             oid = cur.fetchone()['id']
             number = 'СЛ-' + str(2000 + oid)
             q(cur, "UPDATE {S}.orders SET number = %s WHERE id = %s", (number, oid))
@@ -327,9 +374,58 @@ def handler(event: dict, context) -> dict:
             return resp(200, {'ok': True})
 
         if action == 'clients':
-            q(cur, "SELECT u.*, (SELECT COUNT(*) FROM {S}.orders o WHERE o.client_id = u.id) AS orders_count "
-                   "FROM {S}.users u WHERE u.role = 'client' ORDER BY u.created_at DESC")
-            return resp(200, {'clients': [{**public_user(c), 'ordersCount': c['orders_count']} for c in cur.fetchall()]})
+            q(cur, "SELECT u.*, (SELECT COUNT(*) FROM {S}.orders o WHERE o.client_id = u.id) AS orders_count, "
+                   "(SELECT COUNT(*) FROM {S}.delivery_addresses a WHERE a.client_id = u.id AND a.active) AS addr_count, "
+                   "t.name AS price_type_name FROM {S}.users u LEFT JOIN {S}.price_types t ON t.id = u.price_type_id "
+                   "WHERE u.role = 'client' ORDER BY u.created_at DESC")
+            return resp(200, {'clients': [{**public_user(c), 'ordersCount': c['orders_count'], 'addressesCount': c['addr_count'],
+                                           'priceTypeName': c['price_type_name']} for c in cur.fetchall()]})
+
+        if action == 'client_update':
+            cid = int(body.get('id', 0))
+            q(cur, "SELECT * FROM {S}.users WHERE id = %s AND role = 'client'", (cid,))
+            if not cur.fetchone():
+                return resp(404, {'error': 'Клиент не найден'})
+            login = (body.get('login') or '').strip()
+            if not (body.get('company') or '').strip() or not login:
+                return resp(400, {'error': 'Заполните организацию и логин'})
+            q(cur, "SELECT 1 FROM {S}.users WHERE lower(login) = lower(%s) AND id <> %s", (login, cid))
+            if cur.fetchone():
+                return resp(409, {'error': 'Такой логин уже занят'})
+            pt = body.get('priceTypeId') or None
+            q(cur, "UPDATE {S}.users SET company=%s, inn=%s, contact=%s, phone=%s, login=%s, price_type_id=%s WHERE id=%s",
+              (body['company'].strip(), (body.get('inn') or '').strip(), (body.get('contact') or '').strip(),
+               (body.get('phone') or '').strip(), login, int(pt) if pt else None, cid))
+            pw = body.get('password') or ''
+            if pw:
+                if len(pw) < 4:
+                    return resp(400, {'error': 'Пароль — минимум 4 символа'})
+                q(cur, "UPDATE {S}.users SET password_hash = %s WHERE id = %s", (hash_pw(pw), cid))
+                q(cur, "UPDATE {S}.sessions SET expires_at = NOW() WHERE user_id = %s", (cid,))
+            return resp(200, {'ok': True})
+
+        if action == 'client_addresses':
+            q(cur, "SELECT id, name, code_1c AS \"code1c\", active, "
+                   "(SELECT COUNT(*) FROM {S}.orders o WHERE o.address_id = a.id) AS \"ordersCount\" "
+                   "FROM {S}.delivery_addresses a WHERE client_id = %s ORDER BY active DESC, name", (int(body.get('clientId', 0)),))
+            return resp(200, {'addresses': cur.fetchall()})
+
+        if action == 'address_save':
+            name = (body.get('name') or '').strip()
+            if not name:
+                return resp(400, {'error': 'Укажите наименование адреса'})
+            code = (body.get('code1c') or '').strip()
+            active = bool(body.get('active', True))
+            if body.get('id'):
+                q(cur, "UPDATE {S}.delivery_addresses SET name=%s, code_1c=%s, active=%s WHERE id=%s RETURNING id",
+                  (name, code, active, int(body['id'])))
+            else:
+                q(cur, "INSERT INTO {S}.delivery_addresses (client_id, name, code_1c, active) VALUES (%s,%s,%s,%s) RETURNING id",
+                  (int(body['clientId']), name, code, active))
+            r = cur.fetchone()
+            if not r:
+                return resp(404, {'error': 'Адрес не найден'})
+            return resp(200, {'ok': True, 'id': r['id']})
 
         if action == 'create_client':
             login = (body.get('login') or '').strip()
