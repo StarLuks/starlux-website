@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Product, boxPrice, rub } from "@/data/catalog";
 import QtyControl from "./QtyControl";
 import ImageLightbox from "./ImageLightbox";
@@ -16,13 +16,54 @@ interface Props {
 
 const COLS = "md:grid-cols-[2.4fr_1.1fr_70px_0.9fr_110px_1fr_150px]";
 
-const PriceTable = ({ label, products, qty, onQty, className, grouped }: Props) => {
+type SortDir = "none" | "asc" | "desc";
+const SORT_KEY = "starlux_price_sort";
+const NEXT: Record<SortDir, SortDir> = { none: "asc", asc: "desc", desc: "none" };
+
+const PriceTable = ({ label, products: source, qty, onQty, className, grouped }: Props) => {
   const [viewing, setViewing] = useState<Product | null>(null);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [sort, setSort] = useState<SortDir>(() => {
+    const v = localStorage.getItem(SORT_KEY);
+    return v === "asc" || v === "desc" ? v : "none";
+  });
+  useEffect(() => {
+    if (sort === "none") localStorage.removeItem(SORT_KEY);
+    else localStorage.setItem(SORT_KEY, sort);
+  }, [sort]);
+
+  const products = useMemo(() => {
+    if (sort === "none") return source;
+    const dir = sort === "asc" ? 1 : -1;
+    const groupIdx = new Map<string, number>();
+    source.forEach((p) => !groupIdx.has(p.category) && groupIdx.set(p.category, groupIdx.size));
+    return [...source].sort(
+      (a, b) =>
+        (grouped ? (groupIdx.get(a.category) ?? 0) - (groupIdx.get(b.category) ?? 0) : 0) ||
+        dir * a.name.localeCompare(b.name, "ru", { numeric: true })
+    );
+  }, [source, sort, grouped]);
+
+  const toggleGroup = (c: string) =>
+    setCollapsed((prev) => {
+      const n = new Set(prev);
+      if (n.has(c)) n.delete(c);
+      else n.add(c);
+      return n;
+    });
   return (
     <section className={cn("tile flex min-h-0 flex-col", className)}>
       <div className="tile-label">{label}</div>
-      <div className={cn("hidden h-[34px] items-center px-[22px] text-[0.72em] text-muted-foreground md:grid", COLS)}>
-        <span>Наименование</span>
+      <div className={cn("hidden h-[38px] items-center px-[22px] text-[0.82em] font-medium text-muted-foreground md:grid", COLS)}>
+        <button
+          type="button"
+          onClick={() => setSort(NEXT[sort])}
+          title={sort === "asc" ? "Сортировка А→Я" : sort === "desc" ? "Сортировка Я→А" : "Сортировать по наименованию"}
+          className={cn("flex items-center gap-1 justify-self-start transition-colors hover:text-foreground", sort !== "none" && "text-primary")}
+        >
+          Наименование
+          <Icon name={sort === "asc" ? "ArrowDown" : sort === "desc" ? "ArrowUp" : "ArrowUpDown"} size={14} className={sort === "none" ? "opacity-50" : ""} />
+        </button>
         <span>Фасовка</span>
         <span>Ед. изм.</span>
         <span>Цена, кг</span>
@@ -40,6 +81,7 @@ const PriceTable = ({ label, products, qty, onQty, className, grouped }: Props) 
           const groupHead = grouped && (i === 0 || products[i - 1].category !== p.category);
           const inGroup = groupHead ? products.filter((x) => x.category === p.category) : [];
           const groupPicked = inGroup.filter((x) => (qty[x.id] ?? 0) > 0).length;
+          const isCollapsed = grouped && collapsed.has(p.category);
           const q = qty[p.id] ?? 0;
           const sum = q * boxPrice(p);
           const unit = p.unit || "кор.";
@@ -48,8 +90,13 @@ const PriceTable = ({ label, products, qty, onQty, className, grouped }: Props) 
           return (
             <Fragment key={p.id}>
             {groupHead && (
-              <div className="sticky top-0 z-10 flex items-center gap-2 border-t border-border bg-accent/90 px-4 py-2 font-head text-[0.85em] font-semibold text-accent-foreground backdrop-blur md:px-[22px]">
-                <Icon name="FolderOpen" size={15} className="text-primary" />
+              <button
+                type="button"
+                onClick={() => toggleGroup(p.category)}
+                className="sticky top-0 z-10 flex w-full items-center gap-2 border-t border-border bg-accent/90 px-4 py-2 text-left font-head text-[0.85em] font-semibold text-accent-foreground backdrop-blur transition-colors hover:bg-accent md:px-[22px]"
+              >
+                <Icon name="ChevronDown" size={15} className={cn("text-primary transition-transform", collapsed.has(p.category) && "-rotate-90")} />
+                <Icon name={collapsed.has(p.category) ? "Folder" : "FolderOpen"} size={15} className="text-primary" />
                 <span>{p.category || "Прочее"}</span>
                 <span className="font-normal text-muted-foreground">· {inGroup.length}</span>
                 {groupPicked > 0 && (
@@ -57,8 +104,9 @@ const PriceTable = ({ label, products, qty, onQty, className, grouped }: Props) 
                     в заказе {groupPicked}
                   </span>
                 )}
-              </div>
+              </button>
             )}
+            {!isCollapsed && (
             <div
               className={cn(
                 "grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 border-t border-border px-4 py-3 text-[0.85em] transition-colors md:min-h-12 md:gap-y-0 md:px-[22px] md:py-1.5",
@@ -108,6 +156,7 @@ const PriceTable = ({ label, products, qty, onQty, className, grouped }: Props) 
                 {atMax && <span className="mt-0.5 block text-center text-[0.7em] text-amber-700">весь остаток</span>}
               </div>
             </div>
+            )}
             </Fragment>
           );
         })}
