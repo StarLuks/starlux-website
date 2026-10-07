@@ -279,8 +279,13 @@ const ImportExcelDialog = ({ open, onOpenChange, onImported }: Props) => {
 
         <button
           type="button"
-          onClick={run}
-          disabled={!file || busy || !preview || preview.created + preview.updated === 0}
+          onClick={() => {
+            if (result && !preview) {
+              onOpenChange(false);
+              reset();
+            } else run();
+          }}
+          disabled={busy || (!result && (!file || !preview || preview.created + preview.updated === 0))}
           className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-primary font-head font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
         >
           {busy ? <Icon name="Loader2" size={18} className="animate-spin" /> : <Icon name="Upload" size={18} />}
