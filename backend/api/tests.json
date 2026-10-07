@@ -1,5 +1,7 @@
 {"tests": [
  {"name": "Каталог без входа", "method": "GET", "path": "/?action=catalog", "expectedStatus": 401},
  {"name": "Без входа", "method": "GET", "path": "/?action=orders", "expectedStatus": 401},
+ {"name": "Заявка без телефона", "method": "POST", "path": "/?action=lead", "body": {"contact": "Иван"}, "expectedStatus": 400},
+ {"name": "Заявки без входа", "method": "GET", "path": "/?action=leads", "expectedStatus": 401},
  {"name": "Неверный пароль", "method": "POST", "path": "/?action=login", "body": {"login": "client", "password": "bad"}, "expectedStatus": 401}
 ]}

@@ -251,6 +251,27 @@ def handle_1c(cur, action, body, headers, all_orders=False):
     return resp(404, {'error': 'Неизвестное действие'})
 
 
+LEAD_STATUSES = ('new', 'work', 'done', 'rejected')
+
+
+def create_lead(cur, body, event):
+    def f(k, n):
+        return str(body.get(k) or '').strip()[:n]
+    company, contact, phone, email = f('company', 255), f('contact', 255), f('phone', 64), f('email', 255)
+    if body.get('website'):
+        return resp(200, {'ok': True})
+    if not contact or len(''.join(ch for ch in phone if ch.isdigit())) < 10:
+        return resp(400, {'error': 'Укажите имя и корректный телефон'})
+    ip = ((event.get('requestContext') or {}).get('identity') or {}).get('sourceIp', '')[:64]
+    q(cur, "SELECT COUNT(*) AS c FROM {S}.leads WHERE ip = %s AND created_at > NOW() - INTERVAL '1 hour'", (ip,))
+    if ip and cur.fetchone()['c'] >= 5:
+        return resp(429, {'error': 'Слишком много заявок, попробуйте позже'})
+    q(cur, "INSERT INTO {S}.leads (company, contact, phone, email, business, message, ip) "
+           "VALUES (%s,%s,%s,%s,%s,%s,%s)",
+      (company, contact, phone, email, f('business', 64), f('message', 2000), ip))
+    return resp(200, {'ok': True})
+
+
 def handler(event: dict, context) -> dict:
     """Единый API портала оптовых заказов СтарЛюкс."""
     method = event.get('httpMethod', 'GET')
@@ -281,6 +302,9 @@ def handler(event: dict, context) -> dict:
               (token, u['id'], datetime.utcnow() + (timedelta(days=30) if body.get('remember', True) else timedelta(hours=12))))
             return resp(200, {'token': token, 'user': public_user(u)})
 
+        if action == 'lead':
+            return create_lead(cur, body, event)
+
         user = current_user(cur, headers)
         if not user:
             return resp(401, {'error': 'Требуется вход'})
@@ -292,6 +316,19 @@ def handler(event: dict, context) -> dict:
         if action == 'my_addresses':
             q(cur, "SELECT id, name FROM {S}.delivery_addresses WHERE client_id = %s AND active ORDER BY name", (user['id'],))
             return resp(200, {'addresses': cur.fetchall()})
+
+        if action in ('leads', 'lead_status'):
+            if not staff:
+                return resp(403, {'error': 'Нет доступа'})
+            if action == 'lead_status':
+                st = body.get('status')
+                if st not in LEAD_STATUSES:
+                    return resp(400, {'error': 'Неверный статус'})
+                q(cur, "UPDATE {S}.leads SET status = %s WHERE id = %s", (st, int(body.get('id') or 0)))
+                return resp(200, {'ok': True})
+            q(cur, "SELECT id, company, contact, phone, email, business, message, status, "
+                   "created_at AS \"createdAt\" FROM {S}.leads ORDER BY created_at DESC LIMIT 500")
+            return resp(200, {'leads': cur.fetchall()})
 
         if action == 'me':
             return resp(200, {'user': public_user(user)})

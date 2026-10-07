@@ -1,5 +1,6 @@
 import Icon from "@/components/ui/icon";
 import { COMPANY, mapSrc } from "@/data/company";
+import LeadForm from "@/components/home/LeadForm";
 
 const ITEMS = [
   { i: "Phone", l: "Телефон", v: COMPANY.phone, href: COMPANY.phoneHref },
@@ -23,8 +24,8 @@ const ContactsSection = () => (
         Позвоните или напишите — менеджер подберёт ассортимент, заключит договор и выдаст доступ в личный кабинет для заказов.
       </p>
 
-      <div className="mt-12 grid gap-6 lg:grid-cols-[1fr_1.4fr]">
-        <div className="grid gap-3">
+      <div className="mt-12 grid gap-6 lg:grid-cols-[1fr_1.3fr]">
+        <div className="grid content-start gap-3">
           {ITEMS.map((c) => {
             const body = (
               <>
@@ -50,9 +51,11 @@ const ContactsSection = () => (
           })}
         </div>
 
-        <div className="min-h-[360px] overflow-hidden rounded-3xl border border-white/10 bg-white/5">
-          <iframe title="Карта проезда" src={mapSrc(COMPANY.address)} className="h-full min-h-[360px] w-full" loading="lazy" allowFullScreen />
-        </div>
+        <LeadForm />
+      </div>
+
+      <div className="mt-6 h-[400px] overflow-hidden rounded-3xl border border-white/10 bg-white/5">
+        <iframe title="Карта проезда" src={mapSrc(COMPANY.address)} className="h-full w-full" loading="lazy" allowFullScreen />
       </div>
     </div>
   </section>

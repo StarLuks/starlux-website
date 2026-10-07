@@ -6,6 +6,7 @@ import NewClientDialog from "@/components/manager/NewClientDialog";
 import ClientCard from "@/components/manager/ClientCard";
 import NomenclatureSection from "@/components/manager/NomenclatureSection";
 import PriceTypesSection from "@/components/manager/PriceTypesSection";
+import LeadsSection, { Lead } from "@/components/manager/LeadsSection";
 import OrdersFilterBar, { EMPTY_FILTER, OrdersFilter } from "@/components/manager/OrdersFilterBar";
 import { Client, Order, OrderStatus, STATUSES, isStaff, usePortal } from "@/store/portal";
 import { downloadPriceList, rub } from "@/data/catalog";
@@ -14,7 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import Icon from "@/components/ui/icon";
 
-type Tab = "orders" | "clients" | "nomenclature" | "prices";
+type Tab = "orders" | "clients" | "nomenclature" | "prices" | "leads";
 
 const Manager = () => {
   const { ready, user, products, logout, lastSync, reloadCatalog } = usePortal();
@@ -27,12 +28,16 @@ const Manager = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newLeads, setNewLeads] = useState(0);
 
   const load = useCallback(async () => {
     try {
       const [o, c] = await Promise.all([api<{ orders: Order[] }>("orders"), api<{ clients: Client[] }>("clients")]);
       setOrders(o.orders);
       setClients(c.clients);
+      api<{ leads: Lead[] }>("leads")
+        .then((d) => setNewLeads(d.leads.filter((l) => l.status === "new").length))
+        .catch(() => undefined);
     } catch (e) {
       toast({ title: "Ошибка загрузки", description: (e as Error).message });
     } finally {
@@ -72,7 +77,7 @@ const Manager = () => {
   if (!ready) return <div className="grid min-h-screen place-items-center text-muted-foreground">Загрузка…</div>;
   if (!isStaff(user)) return <Navigate to="/" replace state={{ login: true }} />;
 
-  const isRef = tab === "nomenclature" || tab === "prices";
+  const isRef = tab === "nomenclature" || tab === "prices" || tab === "leads";
   const today = new Date().toDateString();
   const todayOrders = orders.filter((o) => new Date(o.date).toDateString() === today);
   const newCount = orders.filter((o) => o.status === "Новый" || o.status === "Передан в 1С").length;
@@ -118,6 +123,7 @@ const Manager = () => {
         items={[
           { label: `Заказы · ${orders.length}`, active: tab === "orders", onClick: () => setTab("orders") },
           { label: `Клиенты · ${clients.length}`, active: tab === "clients", onClick: () => setTab("clients") },
+          { label: newLeads ? `Заявки · ${newLeads} нов.` : "Заявки", active: tab === "leads", onClick: () => setTab("leads") },
           { label: "Номенклатура", active: tab === "nomenclature", onClick: () => setTab("nomenclature") },
           { label: "Типы цен", active: tab === "prices", onClick: () => setTab("prices") },
           { label: "Прайс ↓", onClick: () => downloadPriceList(products) },
@@ -151,6 +157,7 @@ const Manager = () => {
 
       {tab === "nomenclature" && <NomenclatureSection onChanged={() => reloadCatalog().catch(() => undefined)} />}
       {tab === "prices" && <PriceTypesSection />}
+      {tab === "leads" && <LeadsSection onCount={setNewLeads} />}
 
       {!isRef && (
       <section className="grid animate-fade-in grid-cols-1 gap-5 md:grid-cols-[1.2fr_2fr_1fr]">

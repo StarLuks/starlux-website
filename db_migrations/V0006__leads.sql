@@ -1,0 +1,13 @@
+CREATE TABLE leads (
+  id SERIAL PRIMARY KEY,
+  company VARCHAR(255) NOT NULL DEFAULT '',
+  contact VARCHAR(255) NOT NULL DEFAULT '',
+  phone VARCHAR(64) NOT NULL DEFAULT '',
+  email VARCHAR(255) NOT NULL DEFAULT '',
+  business VARCHAR(64) NOT NULL DEFAULT '',
+  message TEXT NOT NULL DEFAULT '',
+  status VARCHAR(16) NOT NULL DEFAULT 'new',
+  ip VARCHAR(64) NOT NULL DEFAULT '',
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE INDEX leads_created_idx ON leads (created_at DESC);
