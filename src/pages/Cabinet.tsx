@@ -195,6 +195,7 @@ const Cabinet = () => {
             <div className="tile-label">История заказов.</div>
             <OrdersList
               orders={orders}
+              detailed
               empty={loading ? "Загрузка…" : "Заказов пока нет — сформируйте первый"}
               actions={(o) => (
                 <>
