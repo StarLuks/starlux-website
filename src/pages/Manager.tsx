@@ -6,6 +6,7 @@ import NewClientDialog from "@/components/manager/NewClientDialog";
 import ClientCard from "@/components/manager/ClientCard";
 import NomenclatureSection from "@/components/manager/NomenclatureSection";
 import PriceTypesSection from "@/components/manager/PriceTypesSection";
+import ProductCardById from "@/components/manager/ProductCardById";
 import LeadsSection, { Lead } from "@/components/manager/LeadsSection";
 import OrdersFilterBar, { EMPTY_FILTER, OrdersFilter } from "@/components/manager/OrdersFilterBar";
 import { Client, Order, OrderStatus, STATUSES, isStaff, usePortal } from "@/store/portal";
@@ -29,6 +30,7 @@ const Manager = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [newLeads, setNewLeads] = useState(0);
+  const [openProduct, setOpenProduct] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -158,6 +160,14 @@ const Manager = () => {
       {tab === "nomenclature" && <NomenclatureSection onChanged={() => reloadCatalog().catch(() => undefined)} />}
       {tab === "prices" && <PriceTypesSection />}
       {tab === "leads" && <LeadsSection onCount={setNewLeads} />}
+      <ProductCardById
+        productId={openProduct}
+        onClose={() => setOpenProduct(null)}
+        onSaved={() => {
+          load();
+          reloadCatalog().catch(() => undefined);
+        }}
+      />
 
       {!isRef && (
       <section className="grid animate-fade-in grid-cols-1 gap-5 md:grid-cols-[1.2fr_2fr_1fr]">
@@ -226,6 +236,7 @@ const Manager = () => {
               orders={filteredOrders}
               showClient={(o) => o.clientName}
               detailed
+              onProductClick={setOpenProduct}
               empty={loading ? "Загрузка…" : "Нет заказов по выбранному фильтру"}
               statusCell={(o) => (
                 <select

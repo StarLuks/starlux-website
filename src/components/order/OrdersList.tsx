@@ -12,12 +12,13 @@ interface Props {
   statusCell?: (o: Order) => ReactNode;
   empty?: string;
   detailed?: boolean;
+  onProductClick?: (productId: string) => void;
 }
 
 export const fmtDate = (iso: string) =>
   new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Заказов пока нет", detailed }: Props) => {
+const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Заказов пока нет", detailed, onProductClick }: Props) => {
   const [open, setOpen] = useState<number | null>(null);
   const cols = showClient
     ? "md:grid-cols-[110px_150px_1.6fr_110px_1fr_150px_32px]"
@@ -78,7 +79,19 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                         {o.items.map((it, i) => (
                           <tr key={it.productId} className="border-b border-border last:border-0">
                             <td className="px-3 py-2 text-center text-muted-foreground">{i + 1}</td>
-                            <td className="px-3 py-2 font-head">{it.name}</td>
+                            <td className="px-3 py-2 font-head">
+                              {onProductClick ? (
+                                <button
+                                  type="button"
+                                  onClick={() => onProductClick(it.productId)}
+                                  className="text-left text-primary underline-offset-2 hover:underline"
+                                >
+                                  {it.name}
+                                </button>
+                              ) : (
+                                it.name
+                              )}
+                            </td>
                             <td className="px-3 py-2 text-muted-foreground">{it.article || "—"}</td>
                             <td className="px-3 py-2 text-muted-foreground">{it.manufacturer || "—"}</td>
                             <td className="px-3 py-2 font-mono text-muted-foreground">{it.code1c || "—"}</td>
