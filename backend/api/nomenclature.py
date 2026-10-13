@@ -257,7 +257,7 @@ def handle(cur, action, body):
 
 BASE_COLS = ['Код 1С', 'Артикул', 'Наименование', 'Полное наименование', 'Группа', 'Код группы 1С',
              'Единица измерения', 'Вид упаковки', 'Масса, кг', 'Габариты', 'Штрихкод', 'Производитель',
-             'Остаток', 'Активна', 'Описание']
+             'Остаток', 'Активна', 'Весовой', 'Описание']
 
 
 def _template(cur):
@@ -277,7 +277,7 @@ def _template(cur):
         g = cur.fetchone() or {'name': '', 'code_1c': ''}
         ws.append([p['code1c'], p['article'], p['name'], p['fullName'], g['name'], g['code_1c'], p['unit'], p['pack'],
                    float(p['weight']), p['dimensions'], p['barcode'], p['manufacturer'], p['stock'],
-                   'да' if p['active'] else 'нет', p.get('description') or '']
+                   'да' if p['active'] else 'нет', 'да' if p.get('weighted') else 'нет', p.get('description') or '']
                   + [float(p['prices'][str(t['id'])]) if str(t['id']) in p['prices'] else None for t in types])
     for i, h in enumerate(header):
         ws.column_dimensions[ws.cell(1, i + 1).column_letter].width = max(12, min(40, len(h) + 4))
@@ -293,8 +293,8 @@ TEXT_COLS = {'name': 'name', 'full_name': 'fullName', 'article': 'article', 'cod
              'pack': 'pack', 'description': 'description'}
 UPD_COLS = ['name', 'full_name', 'article', 'code_1c', 'barcode', 'unit', 'manufacturer', 'dimensions', 'pack',
             'description',
-            'pack_kg', 'stock', 'active', 'group_id', 'category']
-UPD_TYPES = {**{c: 'text' for c in UPD_COLS}, 'pack_kg': 'numeric', 'stock': 'integer', 'active': 'boolean',
+            'pack_kg', 'stock', 'active', 'weighted', 'group_id', 'category']
+UPD_TYPES = {**{c: 'text' for c in UPD_COLS}, 'pack_kg': 'numeric', 'stock': 'numeric', 'active': 'boolean', 'weighted': 'boolean',
              'group_id': 'integer'}
 
 
@@ -323,7 +323,7 @@ def _import_excel(cur, file_b64, dry=False):
         'groupCode': col('Код группы 1С', 'Код группы'), 'unit': col('Единица измерения', 'Ед. изм.', 'Ед.изм.'),
         'pack': col('Вид упаковки', 'Упаковка'), 'weight': col('Масса, кг', 'Масса', 'Вес'),
         'dimensions': col('Габариты'), 'barcode': col('Штрихкод'), 'manufacturer': col('Производитель'),
-        'stock': col('Остаток'), 'active': col('Активна', 'Активен'),
+        'stock': col('Остаток'), 'active': col('Активна', 'Активен'), 'weighted': col('Весовой', 'Весовой товар'),
         'description': col('Описание', 'Описание товара'),
     }
     if idx['name'] is None:
@@ -401,7 +401,17 @@ def _import_excel(cur, file_b64, dry=False):
         st = _num(stock) if stock is not None else None
         if stock is not None and st is None:
             errors.append(f"Строка {n} ({name}): некорректный остаток «{stock}»")
-        rec['stock'] = int(st) if st is not None else None
+        wt = v('weighted')
+        rec['weighted'] = None if wt is None else wt.lower() not in ('нет', 'no', '0', 'false', 'ложь', '-')
+        is_new = not ((by_code.get(code) if code else None) or (by_art.get(art) if art else None) or by_name.get(name.lower()))
+        if rec['weighted'] is None and is_new:
+            rec['weighted'] = False
+        if st is None:
+            rec['stock'] = None
+        elif rec['weighted'] is False:
+            rec['stock'] = Decimal(int(st))
+        else:
+            rec['stock'] = st.quantize(Decimal('0.001'))
         act = v('active')
         rec['active'] = None if act is None else act.lower() not in ('нет', 'no', '0', 'false', 'ложь', '-')
         rec['group_id'] = gid
@@ -454,10 +464,11 @@ def _import_excel(cur, file_b64, dry=False):
                 rec['pack_kg'] if rec.get('pack_kg') is not None else Decimal(1),
                 rec['stock'] if rec.get('stock') is not None else 0,
                 rec['active'] if rec.get('active') is not None else True,
+                bool(rec.get('weighted')),
                 rec.get('group_id'), rec.get('category') or 'Прочее', sort,
             ))
         execute_values(cur, f"INSERT INTO {schema}.products (id, name, full_name, article, code_1c, barcode, unit, "
-                            f"manufacturer, dimensions, pack, description, pack_kg, stock, active, group_id, category, sort) VALUES %s",
+                            f"manufacturer, dimensions, pack, description, pack_kg, stock, active, weighted, group_id, category, sort) VALUES %s",
                        data, page_size=500)
 
     if upd_rows:
