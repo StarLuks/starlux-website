@@ -98,7 +98,7 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                       <span className="flex items-center gap-1.5">
                         <Icon name="CalendarClock" size={14} className="text-primary" />
                         <span className="text-muted-foreground">Доставка:</span>{" "}
-                        <b className="font-medium">{new Date(o.deliveryAt).toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" })}</b>
+                        <b className="font-medium">{new Date(o.deliveryAt).toLocaleString("ru-RU", { dateStyle: "short" })}</b>
                       </span>
                     )}
                     {o.forEndBuyer && (

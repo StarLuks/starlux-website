@@ -35,13 +35,13 @@ const ConfirmOrderDialog = ({ open, onOpenChange, qty, products, sending, onConf
 
   const needAddress = !!addresses?.length && !addressId;
   const needDate = !deliveryAt;
-  const minDate = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const minDate = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const items = products.filter((p) => (qty[p.id] ?? 0) > 0);
   const total = items.reduce((s, p) => s + boxPrice(p) * qty[p.id], 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl rounded-[18px] border-0 bg-card font-sans">
+      <DialogContent className="max-w-[692px] rounded-[18px] border-0 bg-card font-sans">
         <DialogHeader>
           <DialogTitle className="font-head text-2xl font-light">Проверьте заказ</DialogTitle>
           <DialogDescription>После отправки заказ сразу уйдёт в 1С и появится у менеджера.</DialogDescription>
@@ -66,43 +66,45 @@ const ConfirmOrderDialog = ({ open, onOpenChange, qty, products, sending, onConf
             </div>
           ))}
         </div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-[0.75em] font-medium text-muted-foreground">
-            <Icon name="MapPin" size={14} /> Адрес доставки
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex items-center gap-1.5 text-[0.75em] font-medium text-muted-foreground">
+              <Icon name="MapPin" size={14} /> Адрес доставки
+            </div>
+            {addresses === null ? (
+              <div className="h-12 animate-pulse rounded-[14px] bg-pill" />
+            ) : addresses.length === 0 ? (
+              <p className="rounded-[14px] bg-pill px-4 py-3 text-[0.8em] text-muted-foreground">
+                Адреса доставки не заданы — укажите адрес в комментарии или уточните у менеджера.
+              </p>
+            ) : (
+              <Select value={addressId ? String(addressId) : undefined} onValueChange={(v) => setAddressId(Number(v))}>
+                <SelectTrigger className="h-12 rounded-[14px] bg-card text-left text-[0.85em]">
+                  <SelectValue placeholder="Выберите адрес доставки" />
+                </SelectTrigger>
+                <SelectContent>
+                  {addresses.map((a) => (
+                    <SelectItem key={a.id} value={String(a.id)}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
-          {addresses === null ? (
-            <div className="h-12 animate-pulse rounded-[14px] bg-pill" />
-          ) : addresses.length === 0 ? (
-            <p className="rounded-[14px] bg-pill px-4 py-3 text-[0.8em] text-muted-foreground">
-              Адреса доставки не заданы — укажите адрес в комментарии или уточните у менеджера.
-            </p>
-          ) : (
-            <Select value={addressId ? String(addressId) : undefined} onValueChange={(v) => setAddressId(Number(v))}>
-              <SelectTrigger className="h-12 rounded-[14px] bg-card text-left text-[0.85em]">
-                <SelectValue placeholder="Выберите адрес доставки" />
-              </SelectTrigger>
-              <SelectContent>
-                {addresses.map((a) => (
-                  <SelectItem key={a.id} value={String(a.id)}>
-                    {a.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-        <div className="space-y-2">
-          <label htmlFor="delivery-at" className="flex items-center gap-1.5 text-[0.75em] font-medium text-muted-foreground">
-            <Icon name="CalendarClock" size={14} /> Дата и время доставки
-          </label>
-          <input
-            id="delivery-at"
-            type="datetime-local"
-            value={deliveryAt}
-            min={minDate}
-            onChange={(e) => setDeliveryAt(e.target.value)}
-            className="h-12 w-full rounded-[14px] border border-border bg-card px-3.5 text-[0.85em] outline-none ring-ocean focus:ring-2"
-          />
+          <div className="w-[190px] shrink-0 space-y-2">
+            <label htmlFor="delivery-at" className="flex items-center gap-1.5 text-[0.75em] font-medium text-muted-foreground">
+              <Icon name="CalendarClock" size={14} /> Дата доставки
+            </label>
+            <input
+              id="delivery-at"
+              type="date"
+              value={deliveryAt}
+              min={minDate}
+              onChange={(e) => setDeliveryAt(e.target.value)}
+              className="h-12 w-full rounded-[14px] border border-border bg-card px-3.5 text-[0.85em] outline-none ring-ocean focus:ring-2"
+            />
+          </div>
         </div>
         <label className="flex cursor-pointer items-center gap-2.5 text-[0.85em]">
           <Checkbox checked={forEndBuyer} onCheckedChange={(v) => setForEndBuyer(v === true)} />
@@ -122,7 +124,7 @@ const ConfirmOrderDialog = ({ open, onOpenChange, qty, products, sending, onConf
           <button
             type="button"
             disabled={items.length === 0 || sending || needAddress || needDate || addresses === null}
-            title={needAddress ? "Выберите адрес доставки" : needDate ? "Укажите дату и время доставки" : undefined}
+            title={needAddress ? "Выберите адрес доставки" : needDate ? "Укажите дату доставки" : undefined}
             onClick={() => {
               onConfirm(comment.trim(), addressId, deliveryAt, forEndBuyer);
               setComment("");
