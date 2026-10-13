@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import Icon from "@/components/ui/icon";
 import { api } from "@/lib/api";
-import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Product, boxPrice, rub } from "@/data/catalog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Props {
   open: boolean;
@@ -11,12 +12,14 @@ interface Props {
   qty: Record<string, number>;
   products: Product[];
   sending?: boolean;
-  onConfirm: (comment: string, addressId: number | null) => void;
+  onConfirm: (comment: string, addressId: number | null, deliveryAt: string, forEndBuyer: boolean) => void;
   onRemove: (id: string) => void;
 }
 
 const ConfirmOrderDialog = ({ open, onOpenChange, qty, products, sending, onConfirm, onRemove }: Props) => {
   const [comment, setComment] = useState("");
+  const [deliveryAt, setDeliveryAt] = useState("");
+  const [forEndBuyer, setForEndBuyer] = useState(false);
   const [addresses, setAddresses] = useState<{ id: number; name: string }[] | null>(null);
   const [addressId, setAddressId] = useState<number | null>(null);
 
@@ -31,6 +34,8 @@ const ConfirmOrderDialog = ({ open, onOpenChange, qty, products, sending, onConf
   }, [open]);
 
   const needAddress = !!addresses?.length && !addressId;
+  const needDate = !deliveryAt;
+  const minDate = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   const items = products.filter((p) => (qty[p.id] ?? 0) > 0);
   const total = items.reduce((s, p) => s + boxPrice(p) * qty[p.id], 0);
 
@@ -41,12 +46,20 @@ const ConfirmOrderDialog = ({ open, onOpenChange, qty, products, sending, onConf
           <DialogTitle className="font-head text-2xl font-light">Проверьте заказ</DialogTitle>
           <DialogDescription>После отправки заказ сразу уйдёт в 1С и появится у менеджера.</DialogDescription>
         </DialogHeader>
-        <div className="max-h-[45vh] space-y-1 overflow-y-auto">
+        <div className="max-h-[40vh] overflow-y-auto">
+          <div className="grid grid-cols-[1fr_64px_80px_88px_16px] items-center gap-3 pb-1.5 text-[0.7em] text-muted-foreground">
+            <span>Товар</span>
+            <span className="text-right">Кол-во</span>
+            <span className="text-right">Цена</span>
+            <span className="text-right">Сумма</span>
+            <span />
+          </div>
           {items.map((p) => (
-            <div key={p.id} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 border-t border-border py-2 text-[0.8em]">
+            <div key={p.id} className="grid grid-cols-[1fr_64px_80px_88px_16px] items-center gap-3 border-t border-border py-2 text-[0.8em]">
               <span className="font-head">{p.name}</span>
-              <span className="text-muted-foreground">{qty[p.id]} кор.</span>
-              <span className="w-24 text-right">{rub(boxPrice(p) * qty[p.id])}</span>
+              <span className="text-right text-muted-foreground">{qty[p.id]} кор.</span>
+              <span className="text-right text-muted-foreground">{rub(boxPrice(p))}</span>
+              <span className="text-right">{rub(boxPrice(p) * qty[p.id])}</span>
               <button type="button" onClick={() => onRemove(p.id)} className="text-muted-foreground hover:text-destructive" aria-label="Убрать">
                 ×
               </button>
@@ -64,31 +77,37 @@ const ConfirmOrderDialog = ({ open, onOpenChange, qty, products, sending, onConf
               Адреса доставки не заданы — укажите адрес в комментарии или уточните у менеджера.
             </p>
           ) : (
-            <div className="max-h-44 space-y-1.5 overflow-y-auto">
-              {addresses.map((a) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  onClick={() => setAddressId(a.id)}
-                  className={cn(
-                    "flex w-full items-center gap-3 rounded-[14px] border px-3.5 py-2.5 text-left text-[0.85em] transition-colors",
-                    addressId === a.id ? "border-primary bg-primary/5" : "border-border hover:bg-pill"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "grid h-4 w-4 shrink-0 place-items-center rounded-full border-2",
-                      addressId === a.id ? "border-primary" : "border-muted-foreground/40"
-                    )}
-                  >
-                    {addressId === a.id && <span className="h-2 w-2 rounded-full bg-primary" />}
-                  </span>
-                  {a.name}
-                </button>
-              ))}
-            </div>
+            <Select value={addressId ? String(addressId) : undefined} onValueChange={(v) => setAddressId(Number(v))}>
+              <SelectTrigger className="h-12 rounded-[14px] bg-card text-left text-[0.85em]">
+                <SelectValue placeholder="Выберите адрес доставки" />
+              </SelectTrigger>
+              <SelectContent>
+                {addresses.map((a) => (
+                  <SelectItem key={a.id} value={String(a.id)}>
+                    {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </div>
+        <div className="space-y-2">
+          <label htmlFor="delivery-at" className="flex items-center gap-1.5 text-[0.75em] font-medium text-muted-foreground">
+            <Icon name="CalendarClock" size={14} /> Дата и время доставки
+          </label>
+          <input
+            id="delivery-at"
+            type="datetime-local"
+            value={deliveryAt}
+            min={minDate}
+            onChange={(e) => setDeliveryAt(e.target.value)}
+            className="h-12 w-full rounded-[14px] border border-border bg-card px-3.5 text-[0.85em] outline-none ring-ocean focus:ring-2"
+          />
+        </div>
+        <label className="flex cursor-pointer items-center gap-2.5 text-[0.85em]">
+          <Checkbox checked={forEndBuyer} onCheckedChange={(v) => setForEndBuyer(v === true)} />
+          Оформить на конечного покупателя
+        </label>
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
@@ -102,15 +121,17 @@ const ConfirmOrderDialog = ({ open, onOpenChange, qty, products, sending, onConf
           </div>
           <button
             type="button"
-            disabled={items.length === 0 || sending || needAddress || addresses === null}
-            title={needAddress ? "Выберите адрес доставки" : undefined}
+            disabled={items.length === 0 || sending || needAddress || needDate || addresses === null}
+            title={needAddress ? "Выберите адрес доставки" : needDate ? "Укажите дату и время доставки" : undefined}
             onClick={() => {
-              onConfirm(comment.trim(), addressId);
+              onConfirm(comment.trim(), addressId, deliveryAt, forEndBuyer);
               setComment("");
+              setDeliveryAt("");
+              setForEndBuyer(false);
             }}
             className="rounded-full bg-ocean px-6 py-3 font-head text-ocean-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
           >
-            {sending ? "Отправляем…" : needAddress ? "Выберите адрес" : "Отправить заказ →"}
+            {sending ? "Отправляем…" : needAddress ? "Выберите адрес" : needDate ? "Укажите дату" : "Отправить заказ →"}
           </button>
         </div>
       </DialogContent>

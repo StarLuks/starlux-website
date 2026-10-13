@@ -186,7 +186,7 @@ def load_orders(cur, client_id=None, only_new=False):
         where.append('NOT o.exported_1c')
     w = ('WHERE ' + ' AND '.join(where)) if where else ''
     q(cur, "SELECT o.id, o.number, o.client_id AS \"clientId\", u.company AS \"clientName\", u.inn AS \"clientInn\", "
-           "u.ext_id AS \"clientExtId\", o.status, o.total, o.comment, o.cancel_reason AS \"cancelReason\", o.exported_1c AS \"exported\", "
+           "u.ext_id AS \"clientExtId\", o.status, o.total, o.comment, o.delivery_at AS \"deliveryAt\", o.for_end_buyer AS \"forEndBuyer\", o.cancel_reason AS \"cancelReason\", o.exported_1c AS \"exported\", "
            "o.address_name AS \"address\", a.code_1c AS \"addressCode1c\", "
            "o.price_type_name AS \"priceTypeName\", COALESCE(t.code_1c, '') AS \"priceTypeCode1c\", "
            "o.created_at AS date FROM {S}.orders o JOIN {S}.users u ON u.id = o.client_id "
@@ -454,9 +454,13 @@ def handler(event: dict, context) -> dict:
                 lines.append((p['id'], p['name'], wanted[p['id']], bp, bp * wanted[p['id']]))
             total = sum(l[4] for l in lines)
             comment = (body.get('comment') or '').strip()[:1000] or None
-            q(cur, "INSERT INTO {S}.orders (number, client_id, total, comment, address_id, address_name, price_type_id, price_type_name) "
-                   "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
-              ('tmp-' + secrets.token_hex(6), user['id'], total, comment, addr_id, addrs.get(addr_id), pt['id'], pt['name']))
+            delivery_at = (body.get('deliveryAt') or '').strip()[:16] or None
+            if not delivery_at:
+                return resp(400, {'error': 'Укажите дату и время доставки'})
+            for_end_buyer = bool(body.get('forEndBuyer'))
+            q(cur, "INSERT INTO {S}.orders (number, client_id, total, comment, address_id, address_name, price_type_id, price_type_name, delivery_at, for_end_buyer) "
+                   "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+              ('tmp-' + secrets.token_hex(6), user['id'], total, comment, addr_id, addrs.get(addr_id), pt['id'], pt['name'], delivery_at, for_end_buyer))
             oid = cur.fetchone()['id']
             number = 'СЛ-' + str(2000 + oid)
             q(cur, "UPDATE {S}.orders SET number = %s WHERE id = %s", (number, oid))

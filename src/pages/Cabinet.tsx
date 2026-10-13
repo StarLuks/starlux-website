@@ -131,13 +131,15 @@ const Cabinet = () => {
     setConfirm(true);
   };
 
-  const confirmOrder = async (comment: string, addressId: number | null) => {
+  const confirmOrder = async (comment: string, addressId: number | null, deliveryAt: string, forEndBuyer: boolean) => {
     setSending(true);
     try {
       const o = await api<{ number: string; total: number }>("create_order", {
         items: picked.map((p) => ({ productId: p.id, qty: qty[p.id] })),
         comment,
         addressId,
+        deliveryAt,
+        forEndBuyer,
       });
       setConfirm(false);
       setQty({});

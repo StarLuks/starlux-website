@@ -51,6 +51,8 @@ export interface Order {
   comment?: string;
   cancelReason?: string | null;
   address?: string | null;
+  deliveryAt?: string | null;
+  forEndBuyer?: boolean;
   priceTypeName?: string | null;
 }
 

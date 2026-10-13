@@ -81,7 +81,7 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
             </button>
             {isOpen && (
               <div className="animate-fade-in border-t border-border bg-background/30 px-4 py-4 md:px-[22px]">
-                {(o.address || o.priceTypeName) && (
+                {(o.address || o.priceTypeName || o.deliveryAt || o.forEndBuyer) && (
                   <div className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[0.8em]">
                     {o.priceTypeName && (
                       <span className="flex items-center gap-1.5">
@@ -92,6 +92,18 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                     {o.address && (
                       <span className="flex items-center gap-1.5">
                         <Icon name="MapPin" size={14} className="text-primary" /> {o.address}
+                      </span>
+                    )}
+                    {o.deliveryAt && (
+                      <span className="flex items-center gap-1.5">
+                        <Icon name="CalendarClock" size={14} className="text-primary" />
+                        <span className="text-muted-foreground">Доставка:</span>{" "}
+                        <b className="font-medium">{new Date(o.deliveryAt).toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" })}</b>
+                      </span>
+                    )}
+                    {o.forEndBuyer && (
+                      <span className="flex items-center gap-1.5">
+                        <Icon name="UserCheck" size={14} className="text-primary" /> На конечного покупателя
                       </span>
                     )}
                   </div>
@@ -167,11 +179,12 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                 <div className="space-y-1.5 text-[0.8em]">
                   {o.items.map((it) => {
                     return (
-                      <div key={it.productId} className={cn("grid grid-cols-[1fr_auto_auto] gap-4 rounded", hit(it.name) && "bg-amber-200/40")}>
+                      <div key={it.productId} className={cn("grid grid-cols-[1fr_auto_auto_auto] gap-4 rounded", hit(it.name) && "bg-amber-200/40")}>
                         <span className="font-head">
                           <Mark text={it.name} q={hq} />
                         </span>
                         <span className="text-muted-foreground">{it.qty} кор.</span>
+                        <span className="w-24 text-right text-muted-foreground">{rub(it.boxPrice)}</span>
                         <span className="w-28 text-right">{rub(it.sum)}</span>
                       </div>
                     );
