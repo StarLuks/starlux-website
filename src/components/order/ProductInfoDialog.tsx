@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import Icon from "@/components/ui/icon";
-import { Product, boxPrice, rub } from "@/data/catalog";
+import { Product, boxPrice, qtyFmt, rub } from "@/data/catalog";
 import QtyControl from "./QtyControl";
 import ImageLightbox from "./ImageLightbox";
 import { cn } from "@/lib/utils";
@@ -96,7 +96,7 @@ const ProductInfoDialog = ({ product: p, onOpenChange, qty, onQty }: Props) => {
                     )}
                   >
                     <span className={cn("h-1.5 w-1.5 rounded-full", out ? "bg-destructive" : p.stock < 30 ? "bg-amber-500" : "bg-success")} />
-                    {out ? "нет в наличии" : `доступно ${p.stock} ${unit}`}
+                    {out ? "нет в наличии" : `доступно ${qtyFmt(p.stock)} ${unit}`}
                   </span>
                 </div>
 
@@ -130,7 +130,7 @@ const ProductInfoDialog = ({ product: p, onOpenChange, qty, onQty }: Props) => {
           <div className="flex items-center justify-between gap-3 border-t border-border bg-card px-5 py-3">
             <div className="text-sm">
               <span className="text-muted-foreground">В заказе: </span>
-              <b>{qty > 0 ? `${qty} ${unit} · ${rub(qty * boxPrice(p))}` : "—"}</b>
+              <b>{qty > 0 ? `${qtyFmt(qty)} ${unit} · ${rub(qty * boxPrice(p))}` : "—"}</b>
             </div>
             <div className="w-[150px]">
               <QtyControl value={qty} onChange={onQty} max={p.stock} disabled={out} />

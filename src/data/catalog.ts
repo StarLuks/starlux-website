@@ -22,7 +22,10 @@ export const categoriesOf = (products: Product[]): Category[] => Array.from(new 
 
 export const boxPrice = (p: Product) => Math.round(p.price * p.packKg);
 
-export const rub = (n: number) => `${Number(n).toLocaleString("ru-RU")} ₽`;
+export const rub = (n: number) =>
+  `${Number(n).toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`;
+export const qtyFmt = (n: number) =>
+  Number(n).toLocaleString("ru-RU", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
 export function downloadPriceList(products: Product[]) {
   const header = ["Категория", "Наименование", "Фасовка", "Цена за кг, руб", "Цена за короб, руб", "Остаток, кор."];

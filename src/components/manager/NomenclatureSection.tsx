@@ -17,7 +17,7 @@ import GroupDialog from "./GroupDialog";
 import ImportExcelDialog from "./ImportExcelDialog";
 import { api } from "@/lib/api";
 import { NomProduct, PriceType, ProductGroup } from "@/lib/nomenclature";
-import { rub } from "@/data/catalog";
+import { qtyFmt, rub } from "@/data/catalog";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -291,7 +291,7 @@ const NomenclatureSection = ({ onChanged }: Props) => {
                     {[p.pack, p.unit, p.manufacturer].filter(Boolean).join(" · ")}
                   </span>
                   <span className="text-xs text-muted-foreground lg:hidden">
-                    {groupName(p.groupId)} · ост. {p.stock} {p.unit} · {price !== undefined ? rub(price) : "цена не задана"}
+                    {groupName(p.groupId)} · ост. {qtyFmt(p.stock)} {p.unit} · {price !== undefined ? rub(price) : "цена не задана"}
                   </span>
                 </span>
                 <span className="hidden truncate text-muted-foreground lg:block">{p.article || "—"}</span>
@@ -304,7 +304,7 @@ const NomenclatureSection = ({ onChanged }: Props) => {
                       p.stock <= 0 ? "bg-destructive/10 text-destructive" : p.stock < 30 ? "bg-amber-100 text-amber-800" : "bg-success/10 text-success"
                     )}
                   >
-                    {p.stock <= 0 ? "нет" : `${p.stock} ${p.unit}`}
+                    {p.stock <= 0 ? "нет" : `${qtyFmt(p.stock)} ${p.unit}`}
                   </span>
                 </span>
                 <span className="hidden text-right font-medium lg:block">

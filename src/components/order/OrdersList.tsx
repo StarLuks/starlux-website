@@ -1,6 +1,6 @@
 import { Fragment, ReactNode, useState } from "react";
 import { Order } from "@/store/portal";
-import { rub } from "@/data/catalog";
+import { qtyFmt, rub } from "@/data/catalog";
 import StatusBadge from "./StatusBadge";
 import Icon from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
@@ -144,7 +144,7 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                             <td className="px-3 py-2 text-muted-foreground">{it.article || "—"}</td>
                             <td className="px-3 py-2 text-muted-foreground">{it.manufacturer || "—"}</td>
                             <td className="px-3 py-2 font-mono text-muted-foreground">{it.code1c || "—"}</td>
-                            <td className="px-3 py-2 text-right">{it.qty}</td>
+                            <td className="px-3 py-2 text-right">{qtyFmt(it.qty)}</td>
                             <td className="px-3 py-2 text-muted-foreground">{it.unit || "кор."}</td>
                             <td className="whitespace-nowrap px-3 py-2 text-right">{rub(it.boxPrice)}</td>
                             <td className="whitespace-nowrap px-3 py-2 text-right font-semibold">{rub(it.sum)}</td>
@@ -163,7 +163,7 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                                 <b className="text-foreground">
                                   {o.items
                                     .reduce((m, it) => m + Number(it.weight ?? 0) * Number(it.qty), 0)
-                                    .toLocaleString("ru-RU", { maximumFractionDigits: 3 })}{" "}
+                                    .toLocaleString("ru-RU", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}{" "}
                                   кг
                                 </b>
                               </span>
@@ -183,7 +183,7 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                         <span className="font-head">
                           <Mark text={it.name} q={hq} />
                         </span>
-                        <span className="text-muted-foreground">{it.qty} кор.</span>
+                        <span className="text-muted-foreground">{qtyFmt(it.qty)} кор.</span>
                         <span className="w-24 text-right text-muted-foreground">{rub(it.boxPrice)}</span>
                         <span className="w-28 text-right">{rub(it.sum)}</span>
                       </div>

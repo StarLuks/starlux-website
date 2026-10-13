@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Icon from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Product, boxPrice, rub } from "@/data/catalog";
+import { Product, boxPrice, qtyFmt, rub } from "@/data/catalog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -57,7 +57,7 @@ const ConfirmOrderDialog = ({ open, onOpenChange, qty, products, sending, onConf
           {items.map((p) => (
             <div key={p.id} className="grid grid-cols-[1fr_64px_80px_88px_16px] items-center gap-3 border-t border-border py-2 text-[0.8em]">
               <span className="font-head">{p.name}</span>
-              <span className="text-right text-muted-foreground">{qty[p.id]} кор.</span>
+              <span className="text-right text-muted-foreground">{qtyFmt(qty[p.id])} кор.</span>
               <span className="text-right text-muted-foreground">{rub(boxPrice(p))}</span>
               <span className="text-right">{rub(boxPrice(p) * qty[p.id])}</span>
               <button type="button" onClick={() => onRemove(p.id)} className="text-muted-foreground hover:text-destructive" aria-label="Убрать">

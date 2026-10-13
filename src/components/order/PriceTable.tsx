@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { Product, boxPrice, rub } from "@/data/catalog";
+import { Product, boxPrice, qtyFmt, rub } from "@/data/catalog";
 import QtyControl from "./QtyControl";
 import ImageLightbox from "./ImageLightbox";
 import ProductInfoDialog from "./ProductInfoDialog";
@@ -154,7 +154,7 @@ const PriceTable = ({ label, products: source, qty, onQty, className, grouped }:
                   )}
                 >
                   <span className={cn("h-1.5 w-1.5 rounded-full", out ? "bg-destructive" : p.stock < 30 ? "bg-amber-500" : "bg-success")} />
-                  {out ? "нет" : `${p.stock} ${unit}`}
+                  {out ? "нет" : `${qtyFmt(p.stock)} ${unit}`}
                 </span>
               </span>
               <span className={cn("max-md:order-4 max-md:text-right", q === 0 && "text-muted-foreground")}>
