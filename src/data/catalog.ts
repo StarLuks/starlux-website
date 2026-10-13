@@ -9,6 +9,7 @@ export interface Product {
   price: number;
   stock: number;
   unit?: string;
+  weighted?: boolean;
   images?: string[];
   article?: string;
   manufacturer?: string;

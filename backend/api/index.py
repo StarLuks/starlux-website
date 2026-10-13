@@ -163,7 +163,7 @@ def touch_sync(cur):
 
 def products(cur, price_type_id=None):
     q(cur, "SELECT p.id, p.name, p.category, p.pack, p.pack_kg AS \"packKg\", COALESCE(pp.price, p.price) AS price, "
-           "p.stock, p.unit, p.article, p.manufacturer, p.full_name AS \"fullName\", p.description, p.dimensions, "
+           "p.stock, p.unit, p.weighted, p.article, p.manufacturer, p.full_name AS \"fullName\", p.description, p.dimensions, "
            "p.barcode FROM {S}.products p LEFT JOIN {S}.product_prices pp ON pp.product_id = p.id AND pp.price_type_id = %s "
            "WHERE p.active ORDER BY p.sort, p.name", (price_type_id or 0,))
     rows = cur.fetchall()
@@ -427,7 +427,7 @@ def handler(event: dict, context) -> dict:
         if action == 'create_order':
             if user['role'] != 'client':
                 return resp(403, {'error': 'Заказ оформляет клиент'})
-            wanted = {str(i['productId']): int(i['qty']) for i in body.get('items', []) if int(i.get('qty', 0)) > 0}
+            wanted = {str(i['productId']): Decimal(str(i['qty'])).quantize(Decimal('0.001')) for i in body.get('items', []) if Decimal(str(i.get('qty', 0))) > 0}
             if not wanted:
                 return resp(400, {'error': 'Заказ пуст'})
             q(cur, "SELECT id, name FROM {S}.delivery_addresses WHERE client_id = %s AND active", (user['id'],))
@@ -436,7 +436,7 @@ def handler(event: dict, context) -> dict:
             if addrs and (not addr_id or int(addr_id) not in addrs):
                 return resp(400, {'error': 'Выберите адрес доставки'})
             addr_id = int(addr_id) if addrs else None
-            q(cur, "SELECT p.id, p.name, p.pack_kg, COALESCE(pp.price, p.price) AS price, p.stock, p.unit FROM {S}.products p "
+            q(cur, "SELECT p.id, p.name, p.pack_kg, COALESCE(pp.price, p.price) AS price, p.stock, p.unit, p.weighted FROM {S}.products p "
                    "LEFT JOIN {S}.product_prices pp ON pp.product_id = p.id AND pp.price_type_id = %s "
                    "WHERE p.active AND p.id IN %s", (client_price_type(cur, user) or 0, tuple(wanted)))
             rows = cur.fetchall()
@@ -445,13 +445,16 @@ def handler(event: dict, context) -> dict:
             pt = cur.fetchone() or {'id': None, 'name': None}
             if not rows:
                 return resp(400, {'error': 'Товары не найдены'})
+            bad = [p['name'] for p in rows if not p['weighted'] and wanted[p['id']] != wanted[p['id']].to_integral_value()]
+            if bad:
+                return resp(400, {'error': 'Дробное количество доступно только для весовых товаров: ' + '; '.join(bad)})
             over = [f"{p['name']} — доступно {p['stock']} {p['unit']}" for p in rows if wanted[p['id']] > p['stock']]
             if over:
                 return resp(409, {'error': 'Недостаточно остатка: ' + '; '.join(over)})
             lines = []
             for p in rows:
                 bp = round(Decimal(p['price']) * Decimal(p['pack_kg']))
-                lines.append((p['id'], p['name'], wanted[p['id']], bp, bp * wanted[p['id']]))
+                lines.append((p['id'], p['name'], wanted[p['id']], bp, (Decimal(bp) * wanted[p['id']]).quantize(Decimal('0.01'))))
             total = sum(l[4] for l in lines)
             comment = (body.get('comment') or '').strip()[:1000] or None
             delivery_at = (body.get('deliveryAt') or '').strip()[:16] or None

@@ -30,6 +30,7 @@ export interface NomProduct {
   code1c: string;
   barcode: string;
   unit: string;
+  weighted?: boolean;
   manufacturer: string;
   dimensions: string;
   weight: number;

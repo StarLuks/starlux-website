@@ -27,6 +27,7 @@ type Form = {
   code1c: string;
   barcode: string;
   unit: string;
+  weighted: boolean;
   manufacturer: string;
   dimensions: string;
   weight: string;
@@ -46,6 +47,7 @@ const toForm = (p: NomProduct | null, groupId?: number | null): Form => ({
   code1c: p?.code1c ?? "",
   barcode: p?.barcode ?? "",
   unit: p?.unit ?? "кор.",
+  weighted: p?.weighted ?? false,
   manufacturer: p?.manufacturer ?? "",
   dimensions: p?.dimensions ?? "",
   weight: p ? String(p.weight) : "",
@@ -103,8 +105,8 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
       const v = (form.prices[t.id] ?? "").trim();
       prices[t.id] = v === "" ? null : v;
     });
-    if (!/^\d+$/.test(form.stock.trim())) {
-      toast({ title: "Остаток должен быть целым числом от 0" });
+    if (!(form.weighted ? /^\d+([.,]\d{1,3})?$/ : /^\d+$/).test(form.stock.trim())) {
+      toast({ title: form.weighted ? "Остаток должен быть числом от 0, до 3 знаков после запятой" : "Остаток должен быть целым числом от 0" });
       setTab("extra");
       return null;
     }
@@ -203,6 +205,10 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
             </div>
           </div>
           <label className="flex shrink-0 items-center gap-2 rounded-full bg-pill px-3 py-1.5 text-xs font-medium">
+            Весовой
+            <Switch checked={form.weighted} onCheckedChange={(v) => set("weighted", v)} />
+          </label>
+          <label className="flex shrink-0 items-center gap-2 rounded-full bg-pill px-3 py-1.5 text-xs font-medium">
             Активна
             <Switch checked={form.active} onCheckedChange={(v) => set("active", v)} />
           </label>
@@ -278,7 +284,7 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
                 <div className="flex h-10 items-center overflow-hidden rounded-xl border border-border bg-pill focus-within:border-ring focus-within:bg-card focus-within:ring-4 focus-within:ring-ring/15">
                   <button
                     type="button"
-                    onClick={() => set("stock", String(Math.max(0, (parseInt(form.stock) || 0) - 1)))}
+                    onClick={() => set("stock", String(Math.max(0, Math.round(((parseFloat(form.stock.replace(",", ".")) || 0) - 1) * 1000) / 1000)))}
                     className="grid h-full w-9 shrink-0 place-items-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                     aria-label="Уменьшить"
                   >
@@ -286,13 +292,13 @@ const ProductCard = ({ product, isNew, groups, priceTypes, defaultGroupId, onClo
                   </button>
                   <input
                     value={form.stock}
-                    onChange={(e) => set("stock", e.target.value.replace(/[^\d]/g, ""))}
-                    inputMode="numeric"
+                    onChange={(e) => set("stock", form.weighted ? e.target.value.replace(/[^\d.,]/g, "") : e.target.value.replace(/[^\d]/g, ""))}
+                    inputMode={form.weighted ? "decimal" : "numeric"}
                     className="h-full min-w-0 flex-1 bg-transparent text-center text-sm font-medium outline-none"
                   />
                   <button
                     type="button"
-                    onClick={() => set("stock", String((parseInt(form.stock) || 0) + 1))}
+                    onClick={() => set("stock", String(Math.round(((parseFloat(form.stock.replace(",", ".")) || 0) + 1) * 1000) / 1000))}
                     className="grid h-full w-9 shrink-0 place-items-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                     aria-label="Увеличить"
                   >

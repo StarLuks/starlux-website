@@ -133,7 +133,7 @@ const ProductInfoDialog = ({ product: p, onOpenChange, qty, onQty }: Props) => {
               <b>{qty > 0 ? `${qtyFmt(qty)} ${unit} · ${rub(qty * boxPrice(p))}` : "—"}</b>
             </div>
             <div className="w-[150px]">
-              <QtyControl value={qty} onChange={onQty} max={p.stock} disabled={out} />
+              <QtyControl value={qty} onChange={onQty} max={p.stock} disabled={out} weighted={p.weighted} />
             </div>
           </div>
         </DialogContent>

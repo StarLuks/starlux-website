@@ -57,7 +57,7 @@ def list_groups(cur):
 def list_products(cur):
     _q(cur, "SELECT p.id, p.group_id AS \"groupId\", p.active, p.name, p.full_name AS \"fullName\", p.article, "
             "p.code_1c AS \"code1c\", p.barcode, p.unit, p.manufacturer, p.dimensions, p.pack_kg AS \"weight\", "
-            "p.pack, p.stock, p.description, p.updated_at AS \"updatedAt\" FROM {S}.products p ORDER BY p.sort, p.name")
+            "p.pack, p.stock, p.weighted, p.description, p.updated_at AS \"updatedAt\" FROM {S}.products p ORDER BY p.sort, p.name")
     rows = cur.fetchall()
     _q(cur, "SELECT id, product_id, url, is_main AS \"isMain\" FROM {S}.product_images ORDER BY is_main DESC, sort, id")
     imgs = {}
@@ -93,8 +93,11 @@ def _upsert_product(cur, pid, data, group_id):
         vals['pack_kg'] = _num(data.get('weight'), Decimal(1))
     if 'active' in data:
         vals['active'] = bool(data['active'])
+    if 'weighted' in data:
+        vals['weighted'] = bool(data['weighted'])
     if 'stock' in data and data.get('stock') not in (None, ''):
-        vals['stock'] = int(_num(data.get('stock'), Decimal(0)))
+        st = _num(data.get('stock'), Decimal(0))
+        vals['stock'] = st if vals.get('weighted', data.get('weighted')) else int(st)
     if group_id is not None:
         vals['group_id'] = group_id
         _q(cur, "SELECT name FROM {S}.product_groups WHERE id = %s", (group_id,))

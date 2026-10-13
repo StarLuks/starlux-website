@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
@@ -6,15 +7,18 @@ interface Props {
   onChange: (v: number) => void;
   max?: number;
   disabled?: boolean;
+  weighted?: boolean;
 }
 
-const QtyControl = ({ value, onChange, max = 9999, disabled }: Props) => {
+const QtyControl = ({ value, onChange, max = 9999, disabled, weighted }: Props) => {
   const active = value > 0;
+  const [text, setText] = useState<string | null>(null);
   const set = (v: number) => {
+    setText(null);
     if (v > max) {
       toast({ title: "Больше нет в наличии", description: `Доступно для заказа: ${max}` });
     }
-    onChange(Math.max(0, Math.min(max, v)));
+    onChange(Math.max(0, Math.min(max, weighted ? Math.round(v * 1000) / 1000 : v)));
   };
   return (
     <div
@@ -27,17 +31,24 @@ const QtyControl = ({ value, onChange, max = 9999, disabled }: Props) => {
       <button
         type="button"
         aria-label="Уменьшить"
-        onClick={() => set(value - 1)}
+        onClick={() => set(Math.max(0, value - 1))}
         className="grid h-[22px] w-[22px] place-items-center rounded-full bg-card text-foreground transition-transform hover:scale-110 active:scale-95"
       >
         −
       </button>
       <input
-        inputMode="numeric"
-        value={value}
-        onChange={(e) => set(parseInt(e.target.value.replace(/\D/g, "") || "0", 10))}
+        inputMode={weighted ? "decimal" : "numeric"}
+        value={text ?? value}
+        onChange={(e) => {
+          if (!weighted) return set(parseInt(e.target.value.replace(/\D/g, "") || "0", 10));
+          const t = e.target.value.replace(",", ".").replace(/[^\d.]/g, "");
+          if (!/^\d*\.?\d{0,3}$/.test(t)) return;
+          if (t.endsWith(".")) return setText(t);
+          set(parseFloat(t || "0"));
+        }}
+        onBlur={() => setText(null)}
         onFocus={(e) => e.target.select()}
-        className="w-12 bg-transparent text-center outline-none"
+        className={cn("bg-transparent text-center outline-none", weighted ? "w-16" : "w-12")}
         aria-label="Количество коробов"
       />
       <button

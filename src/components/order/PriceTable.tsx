@@ -161,7 +161,7 @@ const PriceTable = ({ label, products: source, qty, onQty, className, grouped }:
                 {q > 0 ? rub(sum) : "—"}
               </span>
               <div className="col-span-2 max-md:order-5 max-md:mt-1 md:col-span-1">
-                <QtyControl value={q} onChange={(v) => onQty(p.id, v)} max={p.stock} disabled={out} />
+                <QtyControl value={q} onChange={(v) => onQty(p.id, v)} max={p.stock} disabled={out} weighted={p.weighted} />
                 {atMax && <span className="mt-0.5 block text-center text-[0.7em] text-amber-700">весь остаток</span>}
               </div>
             </div>
