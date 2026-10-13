@@ -183,7 +183,7 @@ const OrdersList = ({ orders, showClient, actions, statusCell, empty = "Зака
                         <span className="font-head">
                           <Mark text={it.name} q={hq} />
                         </span>
-                        <span className="text-muted-foreground">{qtyFmt(it.qty)} кор.</span>
+                        <span className="text-muted-foreground">{qtyFmt(it.qty)} {it.unit || "кор."}</span>
                         <span className="w-24 text-right text-muted-foreground">{rub(it.boxPrice)}</span>
                         <span className="w-28 text-right">{rub(it.sum)}</span>
                       </div>
